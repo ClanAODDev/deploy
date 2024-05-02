@@ -3,7 +3,7 @@ import sys
 import os
 import json
 
-DEPLOYING_USER = "dcdeaton"
+DEPLOYING_USER = "nginx-data"
 DOCKER_PHP_CONTAINER = "clanaod-php-fpm-8-2"
 
 def load_project_paths():
