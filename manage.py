@@ -23,6 +23,7 @@ def deploy_project(project_path, branch_name):
     commands = [
         f"cd {project_path}",
         f"sudo -u {DEPLOYING_USER} git fetch --all > /dev/null",
+        f"sudo -u {DEPLOYING_USER} git checkout {branch_name} > /dev/null",
         f"sudo -u {DEPLOYING_USER} git reset --hard origin/{branch_name} > /dev/null",
         f"sudo -u {DEPLOYING_USER} git pull origin {branch_name} > /dev/null"
     ]
