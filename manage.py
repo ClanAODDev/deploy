@@ -117,4 +117,4 @@ if __name__ == "__main__":
         update_node_packages(project_path)
     else:
         print("Error: Invalid action. Use --deploy <branch_name>, --update-php, or --update-node")
-        sys.exit()
+        sys.exit(1)
