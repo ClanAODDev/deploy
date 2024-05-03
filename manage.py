@@ -2,12 +2,12 @@ import subprocess
 import sys
 import os
 import json
+import argparse
 
 DEPLOYING_USER = "nginx-data"
 DOCKER_PHP_CONTAINER = "clanaod-php-fpm-8-2"
 
 def load_project_paths():
-
     try:
         with open('projects.json', 'r') as file:
             return json.load(file)
@@ -19,7 +19,6 @@ def load_project_paths():
         sys.exit(1)
 
 def deploy_project(project_path, branch_name):
-    
     commands = [
         f"cd {project_path}",
         f"sudo -u {DEPLOYING_USER} git fetch --all > /dev/null",
@@ -29,7 +28,6 @@ def deploy_project(project_path, branch_name):
     ]
 
     try:
-        
         process = subprocess.Popen(
             " && ".join(commands),
             stdout=subprocess.PIPE,
@@ -38,7 +36,6 @@ def deploy_project(project_path, branch_name):
         )
         stdout, stderr = process.communicate()
 
-        
         if process.returncode != 0:
             raise Exception(f"Git operation failed: {stderr.decode().strip()}")
 
@@ -52,7 +49,6 @@ def update_php_packages(project_path, container_name):
         return
 
     docker_command = f"docker exec {container_name} /bin/bash -c 'cd {project_path} && composer update --no-interaction --no-dev'"
-
     command = f"sudo -u {DEPLOYING_USER} {docker_command} > /dev/null"
 
     try:
@@ -96,30 +92,29 @@ def update_node_packages(project_path):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) < 3:
-        print("Usage: python manage.py <project_key> --deploy <branch_name> | --update-php | --update-node")
-        sys.exit(1)
-    
-    project_key = sys.argv[1]
-    action = sys.argv[2]
+    parser = argparse.ArgumentParser(description="Manage project deployments and updates.")
+    parser.add_argument("project_key", help="Project key to identify the project path")
+    parser.add_argument("action", choices=["--deploy", "--update-php", "--update-node"], help="Action to perform")
+    parser.add_argument("branch_name", nargs='?', help="Branch name for deployment, required if action is --deploy")
+
+    args = parser.parse_args()
 
     project_paths = load_project_paths()
-    project_path = project_paths.get(project_key)
+    project_path = project_paths.get(args.project_key)
 
     if project_path is None:
-        print(f"Error: No project found for key '{project_key}'.")
+        print(f"Error: No project found for key '{args.project_key}'.")
         sys.exit(1)
 
-    if action == "--deploy":
-        if len(sys.argv) != 4:
+    if args.action == "--deploy":
+        if not args.branch_name:
             print("Error: Branch name is required for deployment.")
             sys.exit(1)
-        branch_name = sys.argv[3]
-        deploy_project(project_path, branch_name)
-    elif action == "--update-php":
+        deploy_project(project_path, args.branch_name)
+    elif args.action == "--update-php":
         update_php_packages(project_path, DOCKER_PHP_CONTAINER)
-    elif action == "--update-node":
+    elif args.action == "--update-node":
         update_node_packages(project_path)
     else:
-        print("Error: Invalid action. Use --deploy <branch_name>, --update-php, or --update-node.")
-        sys.exit(1)
+        print("Error: Invalid action. Use --deploy <branch_name>, --update-php, or --update-node")
+        sys.exit()
