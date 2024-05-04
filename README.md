@@ -18,7 +18,7 @@ An example json file is provided, but the following values are expected:
 ### Usage
 
 ```
-python manage.py <project_key> --deploy <branch_name> | --update-php | --update-node
+manage.py [-h] [--branch_name BRANCH_NAME] project_key {deploy,update-php,update-node}
 ```
 
 We currently assume PHP runs inside of a docker container, so that's a global variable hardcoded in the manage 
