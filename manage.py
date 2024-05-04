@@ -144,6 +144,10 @@ def update_node_packages(project_path, deploying_user):
     except Exception as e:
         print("An error occurred during Node.js package update: " + str(e))
 
+if sys.version_info < (3, 0):
+    print("Python 3 is required for this script.")
+    sys.exit(1)
+
 if __name__ == "__main__":
     config = load_config()
     parser = argparse.ArgumentParser(description="Manage project deployments and updates.")
