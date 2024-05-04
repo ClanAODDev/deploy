@@ -1,6 +1,6 @@
 # AOD Project Manager
 
-Handles deployment and package updates of PHP, Node.js projects.
+Handles in-situ deployment and package updates of PHP, Node.js projects. 
 
 ### Setup
 
