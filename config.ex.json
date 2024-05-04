@@ -1,0 +1,8 @@
+{
+    "DEPLOYING_USER": "deployer",
+    "DOCKER_PHP_CONTAINER": "php-fpm-8-2",
+    "PROJECT_PATHS": {
+        "tracker_dev": "/path/to/dev/tracker",
+        "tracker_local": "/path/to/local/tracker"
+    }
+}
