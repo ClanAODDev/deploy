@@ -75,15 +75,15 @@ def deploy_project(project_path, branch_name, deploying_user):
     )
     if status_check:
         print("Error: Unstaged changes detected. Please commit or stash changes before deploying.")
-        return
-
+        
     commands = [
-        f"sudo -u {deploying_user} git checkout {branch_name}",
-        f"sudo -u {deploying_user} git reset --hard origin/{branch_name}",
-        f"sudo -u {deploying_user} git pull",
-        f"sudo -u {deploying_user} git submodule update --init --recursive"
+        f"sudo -u {deploying_user} git fetch --all > /dev/null",
+        f"sudo -u {deploying_user} git checkout {branch_name} > /dev/null",
+        f"sudo -u {deploying_user} git reset --hard origin/{branch_name} > /dev/null",
+        f"sudo -u {deploying_user} git submodule update --init --recursive > /dev/null"
     ]
     command_str = " && ".join([f"cd {project_path}"] + commands)
+
     process = subprocess.Popen(
         command_str,
         stdout=subprocess.PIPE,
