@@ -4,10 +4,9 @@ Handles in-situ deployment and package updates of PHP, Node.js projects.
 
 ### Setup
 
-First, ensure the `projects.json` file contains the correct absolute path to the project. The project key will be used
-as an argument.
+An example `config.ex.json` file is provided. Be sure to copy to a new `config.json`.
 
-An example json file is provided, but the following values are expected:
+The following values are expected:
 
 | Key                  | Value                                                         |
 |----------------------|---------------------------------------------------------------|
