@@ -23,6 +23,12 @@ def main(args, config):
     elif args.action == 'update-node':
         print(f"Updating Node packages for {args.project_key}")
         update_node_packages(project_path, config['DEPLOYING_USER'])
+    elif args.action == 'restart-supervisor':
+        if not args.process_name:
+            print("Error: Supervisord process name is required for restart.")
+        return
+        print(f"Restarting {args.process_name} supervisord process")
+        restart_supervisord_process(config['DOCKER_PHP_CONTAINER'], args.process_name, config['DEPLOYING_USER'])
     else:
         print("Error: Invalid action.")
 
@@ -56,6 +62,15 @@ def git_fetch_with_retry(project_path, deploying_user, retries=3, delay=10):
         retries -= 1
         time.sleep(delay)  # Wait before retrying
     raise Exception(f"Failed to fetch from Git after several retries: {stderr.decode().strip()}")
+
+def restart_supervisord_process(container_name, process_name, deploying_user):
+    command = f"sudo -u {deploying_user} docker exec {container_name} supervisorctl restart {process_name}"
+    try:
+        result = subprocess.run(command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        print(f"Successfully restarted '{process_name}' in '{container_name}'.")
+    except subprocess.CalledProcessError as e:
+        print(f"Failed to restart SupervisorD process '{process_name}': {e.stderr.decode()}")
+        sys.exit(1)
 
 def deploy_project(project_path, branch_name, deploying_user):
     if not git_fetch_with_retry(project_path, deploying_user):
@@ -148,8 +163,9 @@ if __name__ == "__main__":
     config = load_config()
     parser = argparse.ArgumentParser(description="Manage project deployments and updates.")
     parser.add_argument("project_key", help="Project key to identify the project path")
-    parser.add_argument("action", choices=['deploy', 'update-php', 'update-node'], help="Action to perform")
+    parser.add_argument("action", choices=['deploy', 'update-php', 'update-node', 'restart-supervisor'], help="Action to perform")
     parser.add_argument("--branch_name", help="Branch name for deployment, required if action is 'deploy'")
+    parser.add_argument("--process_name", help="Name of the SupervisorD process to restart")
 
     args = parser.parse_args()
     main(args, config)

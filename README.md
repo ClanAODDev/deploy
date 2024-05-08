@@ -18,7 +18,8 @@ An example json file is provided, but the following values are expected:
 ### Usage
 
 ```
-manage.py [-h] [--branch_name BRANCH_NAME] project_key {deploy,update-php,update-node}
+manage.py [-h] [--branch_name BRANCH_NAME] [--process_name PROCESS_NAME] project_key {deploy,update-php,update-node,
+restart-supervisor}
 ```
 
 We currently assume PHP runs inside of a docker container, so that's a global variable hardcoded in the manage 
@@ -26,6 +27,10 @@ script. We also assume a specific deploying user for all operations, also a glob
 
 There is a basic sanity check to ensure `--update-node` is used against a real NodeJS project, `--update-php` for PHP
 projects, etc. based on the package file.
+
+There is an action for restarting the supervisord process rather than baking it into the deploy action, since that 
+doesn't necessarily need to happen every time code changes are made - just when code changes are made to things that 
+actually get queued (like notifications).
 
 ### Things to improve/consider
 
