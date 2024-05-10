@@ -15,18 +15,22 @@ def main(args, config):
     if args.action == 'deploy':
         print(f"Deploying {project_config['branch']} on {args.project_key}")
         deploy_project(project_config, config['deploying_user'])
+
     elif args.action == 'update-php':
         print(f"Updating PHP packages for {args.project_key}")
         update_php_packages(project_path, config['DOCKER_PHP_CONTAINER'], config['deploying_user'])
+
     elif args.action == 'update-node':
         print(f"Updating Node packages for {args.project_key}")
         update_node_packages(project_path, config['deploying_user'])
+
     elif args.action == 'restart-supervisor':
         if not args.process_name:
             print("Error: Supervisord process name is required for restart.")
         return
         print(f"Restarting {args.process_name} supervisord process")
         restart_supervisord_process(config['DOCKER_PHP_CONTAINER'], args.process_name, config['deploying_user'])
+
     else:
         print("Error: Invalid action.")
 
