@@ -4,15 +4,26 @@ Handles in-situ deployment, package updates of PHP, Node.js projects, and restar
 
 ### Setup
 
-An example `config.ex.json` file is provided. Be sure to copy to a new `config.json`.
+Example `config.json`:
 
-The following values are expected:
+```json
+{
+    "deploying_user": "deployer",
+    "projects": {
+        "tracker-dev": {
+            "path": "/path/to/project1",
+            "branch": "develop",
+            "container": "php-fpm-container1"
+        },
+        "discord-bot-dev": {
+            "path": "/path/to/project2",
+            "branch": "develop"
+        }
+    }
+}
+```
 
-| Key                  | Value                                                         |
-|----------------------|---------------------------------------------------------------|
-| DEPLOYING_USER       | User configured to pull changes from GitHub                   |
-| DOCKER_PHP_CONTAINER | Name of docker container responsible for serving PHP projects |
-| PROJECT_PATHS        | JSON associative array of project keys and paths to recognize |
+
 
 ### Usage
 
@@ -21,8 +32,8 @@ manage.py [-h] [--branch_name BRANCH_NAME] [--process_name PROCESS_NAME] project
 restart-supervisor}
 ```
 
-We currently assume PHP runs inside of a docker container, so that's a global variable hardcoded in the manage 
-script. We also assume a specific deploying user for all operations, also a global variable.
+We currently assume PHP runs inside of a docker container, so we include the container name as part of the project. We 
+also assume a specific deploying user for all operations.
 
 There is a basic sanity check to ensure `--update-node` is used against a real NodeJS project, `--update-php` for PHP
 projects, etc. based on the package file.
