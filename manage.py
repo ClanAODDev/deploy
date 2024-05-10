@@ -5,30 +5,28 @@ import argparse
 import json
 
 def main(args, config):
-    project_paths = config['PROJECT_PATHS']
-    project_path = project_paths.get(args.project_key)
-    if project_path is None:
+    projects = config['projects']
+    project_config = projects.get(args.project_key)
+
+    if project_config is None:
         print(f"Error: No project found for key '{args.project_key}'.")
         return
 
     if args.action == 'deploy':
-        if args.branch_name is None:
-            print("Error: Branch name is required for deployment.")
-            return
-        print(f"Deploying {args.branch_name} on {args.project_key}")
-        deploy_project(project_path, args.branch_name, config['DEPLOYING_USER'])
+        print(f"Deploying {project_config['branch']} on {args.project_key}")
+        deploy_project(project_config, config['deploying_user'])
     elif args.action == 'update-php':
         print(f"Updating PHP packages for {args.project_key}")
-        update_php_packages(project_path, config['DOCKER_PHP_CONTAINER'], config['DEPLOYING_USER'])
+        update_php_packages(project_path, config['DOCKER_PHP_CONTAINER'], config['deploying_user'])
     elif args.action == 'update-node':
         print(f"Updating Node packages for {args.project_key}")
-        update_node_packages(project_path, config['DEPLOYING_USER'])
+        update_node_packages(project_path, config['deploying_user'])
     elif args.action == 'restart-supervisor':
         if not args.process_name:
             print("Error: Supervisord process name is required for restart.")
         return
         print(f"Restarting {args.process_name} supervisord process")
-        restart_supervisord_process(config['DOCKER_PHP_CONTAINER'], args.process_name, config['DEPLOYING_USER'])
+        restart_supervisord_process(config['DOCKER_PHP_CONTAINER'], args.process_name, config['deploying_user'])
     else:
         print("Error: Invalid action.")
 
@@ -72,14 +70,17 @@ def restart_supervisord_process(container_name, process_name, deploying_user):
         print(f"Failed to restart SupervisorD process '{process_name}': {e.stderr.decode()}")
         sys.exit(1)
 
-def deploy_project(project_path, branch_name, deploying_user):
+def deploy_project(project_config, deploying_user):
+    project_path = project_config['path']
+    branch_name = project_config['branch']
+
     if not git_fetch_with_retry(project_path, deploying_user):
         return
 
-    # Check for branch existence remotely
     remote_branches = subprocess.getoutput(
         f"cd {project_path} && sudo -u {deploying_user} git branch -r"
     )
+
     if f"origin/{branch_name}" not in remote_branches:
         print(f"Error: Branch '{branch_name}' does not exist on the remote.")
         return
@@ -110,7 +111,7 @@ def deploy_project(project_path, branch_name, deploying_user):
     if process.returncode != 0:
         raise Exception(f"Deployment failed: {stderr.decode().strip()}")
 
-    print("Deployment successful.")
+    print(f"Deployment successful for {branch_name} on {project_path}")
 
 def update_php_packages(project_path, container_name, deploying_user):
     if not os.path.exists(os.path.join(project_path, "composer.json")):
@@ -162,10 +163,9 @@ def update_node_packages(project_path, deploying_user):
 if __name__ == "__main__":
     config = load_config()
     parser = argparse.ArgumentParser(description="Manage project deployments and updates.")
-    parser.add_argument("project_key", help="Project key to identify the project path")
+    parser.add_argument("project_key", help="Project key which includes the project and branch info")
     parser.add_argument("action", choices=['deploy', 'update-php', 'update-node', 'restart-supervisor'], help="Action to perform")
-    parser.add_argument("--branch_name", help="Branch name for deployment, required if action is 'deploy'")
-    parser.add_argument("--process_name", help="Name of the SupervisorD process to restart")
+    parser.add_argument("--process_name", help="Name of the SupervisorD process to restart, required if action is 'restart-supervisor'")
 
     args = parser.parse_args()
     main(args, config)
