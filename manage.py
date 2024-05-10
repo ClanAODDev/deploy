@@ -108,6 +108,15 @@ def deploy_project(project_config, deploying_user):
     )
     stdout, stderr = process.communicate()
 
+    # gracefully handle deploying Laravel projects
+    if 'container' in project_config:
+            try:
+                docker_command = f"docker exec {project_config['container']} /usr/bin/php {project_path}/artisan migrate --force"
+                subprocess.run(docker_command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                print("Database migrations completed successfully.")
+            except subprocess.CalledProcessError as e:
+                print(f"Failed to run database migrations: {e.stderr.decode()}")
+
     if process.returncode != 0:
         raise Exception(f"Deployment failed: {stderr.decode().strip()}")
 
