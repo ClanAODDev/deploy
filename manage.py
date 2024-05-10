@@ -174,7 +174,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Manage project deployments and updates.")
     parser.add_argument("project_key", help="Project key which includes the project and branch info")
     parser.add_argument("action", choices=['deploy', 'update-php', 'update-node', 'restart-supervisor'], help="Action to perform")
-    parser.add_argument("--process_name", help="Name of the SupervisorD process to restart, required if action is 'restart-supervisor'")
+    parser.add_argument("--process_name", help="Name of the supervisord process to restart, required if action is 'restart-supervisor'")
 
     args = parser.parse_args()
     main(args, config)
