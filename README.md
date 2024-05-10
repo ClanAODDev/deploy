@@ -28,8 +28,7 @@ Example `config.json`:
 ### Usage
 
 ```
-manage.py [-h] [--branch_name BRANCH_NAME] [--process_name PROCESS_NAME] project_key {deploy,update-php,update-node,
-restart-supervisor}
+manage.py [-h] project_key {deploy,update-php,update-node,restart-supervisor} [--process_name PROCESS_NAME] 
 ```
 
 We currently assume PHP runs inside of a docker container, so we include the container name as part of the project. We 
