@@ -8,16 +8,19 @@ Example `config.json`:
 
 ```json
 {
-    "deploying_user": "deployer",
     "projects": {
         "tracker-dev": {
+            "deploying_user": "username",
             "path": "/path/to/project1",
             "branch": "develop",
-            "container": "php-fpm-container1"
+            "container": "php-fpm-container1",
+            "supervisor_process": "supervisord-process-name"
         },
         "discord-bot-dev": {
+            "deploying_user": "username",
             "path": "/path/to/project2",
-            "branch": "develop"
+            "branch": "develop",
+            "systemd_service": "service-name"
         }
     }
 }
@@ -28,7 +31,7 @@ Example `config.json`:
 ### Usage
 
 ```
-manage.py [-h] project_key {deploy,update-php,update-node,restart-supervisor} [--process_name PROCESS_NAME] 
+manage.py [-h] project_key {deploy,update-php,update-node,restart-supervisor,restart-service}
 ```
 
 We currently assume PHP runs inside of a docker container, so we include the container name as part of the project. We 
