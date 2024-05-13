@@ -109,6 +109,8 @@ def deploy_project(project_config):
     project_path = project_config['path']
     branch_name = project_config['branch']
     deploying_user = project_config['deploying_user']
+    database_file = os.path.join(project_path, "storage", "database.sqlite")
+    
     print(f"Deploying {branch_name} to {project_path}")
  
     if not git_fetch_with_retry(project_path, deploying_user):
@@ -157,6 +159,19 @@ def deploy_project(project_config):
 
     if process.returncode != 0:
         raise Exception(f"Deployment failed: {stderr.decode().strip()}")
+
+    # Ensure correct ownership of SQLite db
+    if os.path.exists(database_file):
+        # Check file ownership
+        stat_info = os.stat(database_file)
+        uid = stat_info.st_uid
+        gid = stat_info.st_gid
+        nginx_uid = pwd.getpwnam("nginx").pw_uid
+        nginx_data_gid = grp.getgrnam("nginx-data").gr_gid
+
+        if uid != nginx_uid or gid != nginx_data_gid:
+            print(f"Changing ownership of {database_file} to nginx:nginx-data.")
+            os.chown(database_file, nginx_uid, nginx_data_gid)
 
     print(f"Deployment successful for {branch_name} on {project_path}")
 
