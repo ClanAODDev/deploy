@@ -203,30 +203,29 @@ def revert_to_last_revision(project_config):
 
     if not os.path.exists(last_revision_path):
         print(f"No LAST_REVISION file found at {last_revision_path}. Reversion cannot proceed.")
-        return False
+        sys.exit(1)
 
     with open(last_revision_path, 'r') as file:
         last_commit_hash = file.readline().strip()
 
     if not last_commit_hash:
         print("LAST_REVISION file is empty. Reversion cannot proceed.")
-        return False
+        sys.exit(1)
 
     check_commit_command = f"sudo -u {deploying_user} git -C {project_path} cat-file -t {last_commit_hash}"
     try:
         subprocess.run(check_commit_command, shell=True, check=True, stdout=subprocess.PIPE)
     except subprocess.CalledProcessError:
         print(f"Commit {last_commit_hash} does not exist in the repository. Reversion cannot proceed.")
-        return False
+        sys.exit(1)
 
     revert_command = f"sudo -u {deploying_user} git -C {project_path} reset --hard {last_commit_hash}"
     try:
         subprocess.run(revert_command, shell=True, check=True)
         print(f"Successfully reverted to commit {last_commit_hash}.")
-        return True
     except subprocess.CalledProcessError as e:
         print(f"Failed to revert to commit {last_commit_hash}: {e.stderr.decode()}")
-        return False
+        sys.exit(1)
 
 def update_php_packages(project_config):
     if project_config['project_path'] is None:
