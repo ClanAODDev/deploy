@@ -116,6 +116,20 @@ def deploy_project(project_config):
     if not git_fetch_with_retry(project_path, deploying_user):
         sys.exit(1)
 
+    # Track current revision in case we need to back out
+    commit_hash_command = f"sudo -u {deploying_user} git -C {project_path} rev-parse HEAD"
+    try:
+        completed_process = subprocess.run(commit_hash_command, shell=True, check=True, text=True, stdout=subprocess.PIPE)
+        current_commit_hash = completed_process.stdout.strip()
+        print(f"Current commit hash: {current_commit_hash}")
+    except subprocess.CalledProcessError as e:
+        print(f"Failed to get current commit hash: {e.stderr}")
+        sys.exit(1)
+    last_revision_path = os.path.join(project_path, "LAST_REVISION")
+    with open(last_revision_path, 'w') as file:
+        file.write(current_commit_hash + "\n")
+    print(f"Updated LAST_REVISION file at {last_revision_path}")
+
     remote_branches = subprocess.getoutput(
         f"cd {project_path} && sudo -u {deploying_user} git branch -r"
     )
