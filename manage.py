@@ -24,6 +24,8 @@ def main(args, config):
         restart_supervisord_process(project_config)
     elif args.action == 'restart-service':
         restart_systemd_service(project_config)
+    elif args.action == 'revert-deployment:
+        revert_to_last_revision(project_config)
     else:
         print("Error: Invalid action.")
         sys.exit(1)
@@ -116,6 +118,20 @@ def deploy_project(project_config):
     if not git_fetch_with_retry(project_path, deploying_user):
         sys.exit(1)
 
+    # Track current revision in case we need to back out
+    commit_hash_command = f"sudo -u {deploying_user} git -C {project_path} rev-parse HEAD"
+    try:
+        completed_process = subprocess.run(commit_hash_command, shell=True, check=True, text=True, stdout=subprocess.PIPE)
+        current_commit_hash = completed_process.stdout.strip()
+        print(f"Current commit hash: {current_commit_hash}")
+    except subprocess.CalledProcessError as e:
+        print(f"Failed to get current commit hash: {e.stderr}")
+        sys.exit(1)
+    last_revision_path = os.path.join(project_path, "LAST_REVISION")
+    with open(last_revision_path, 'w') as file:
+        file.write(current_commit_hash + "\n")
+    print(f"Updated LAST_REVISION file at {last_revision_path}")
+
     remote_branches = subprocess.getoutput(
         f"cd {project_path} && sudo -u {deploying_user} git branch -r"
     )
@@ -172,6 +188,44 @@ def deploy_project(project_config):
             os.chown(database_file, nginx_uid, nginx_data_gid)
 
     print(f"Deployment successful for {branch_name} on {project_path}")
+
+def revert_to_last_revision(project_config):
+    if project_config['project_path'] is None:
+        print("Error: Project path is required.")
+        sys.exit(1)
+    if project_config['deploying_user'] is None:
+        print("Error: Deploying user is required.")
+        sys.exit(1)
+    
+    project_path = project_config['path']
+    deploying_user = project_config['deploying_user']
+    last_revision_path = os.path.join(project_path, "LAST_REVISION")
+
+    if not os.path.exists(last_revision_path):
+        print(f"No LAST_REVISION file found at {last_revision_path}. Reversion cannot proceed.")
+        sys.exit(1)
+
+    with open(last_revision_path, 'r') as file:
+        last_commit_hash = file.readline().strip()
+
+    if not last_commit_hash:
+        print("LAST_REVISION file is empty. Reversion cannot proceed.")
+        sys.exit(1)
+
+    check_commit_command = f"sudo -u {deploying_user} git -C {project_path} cat-file -t {last_commit_hash}"
+    try:
+        subprocess.run(check_commit_command, shell=True, check=True, stdout=subprocess.PIPE)
+    except subprocess.CalledProcessError:
+        print(f"Commit {last_commit_hash} does not exist in the repository. Reversion cannot proceed.")
+        sys.exit(1)
+
+    revert_command = f"sudo -u {deploying_user} git -C {project_path} reset --hard {last_commit_hash}"
+    try:
+        subprocess.run(revert_command, shell=True, check=True)
+        print(f"Successfully reverted to commit {last_commit_hash}.")
+    except subprocess.CalledProcessError as e:
+        print(f"Failed to revert to commit {last_commit_hash}: {e.stderr.decode()}")
+        sys.exit(1)
 
 def update_php_packages(project_config):
     if project_config['project_path'] is None:
@@ -250,7 +304,14 @@ if __name__ == "__main__":
     config = load_config()
     parser = argparse.ArgumentParser(description="Manage project deployments and updates.")
     parser.add_argument("project_key", help="Project key which includes the project and branch info")
-    parser.add_argument("action", choices=['deploy', 'update-php', 'update-node', 'restart-supervisor', 'restart-service'], help="Action to perform")
+    parser.add_argument("action", choices=[
+        'deploy', 
+        'update-php', 
+        'update-node', 
+        'restart-supervisor', 
+        'restart-service', 
+        'revert-deployment'
+    ], help="Action to perform")
 
     args = parser.parse_args()
     main(args, config)
