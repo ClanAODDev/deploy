@@ -172,7 +172,7 @@ def deploy_project(project_config):
     # gracefully handle deploying Laravel projects
     if 'container' in project_config:
         try:
-            docker_command = f"docker exec {project_config['container']} /usr/bin/php {project_path}/artisan migrate --force"
+            docker_command = f"docker exec -u {deploying_user} {project_config['container']} /usr/bin/php {project_path}/artisan migrate --force"
             subprocess.run(docker_command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             print("Database migrations completed successfully.")
         except subprocess.CalledProcessError as e:
