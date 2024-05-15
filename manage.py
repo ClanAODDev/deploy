@@ -98,7 +98,7 @@ def restart_systemd_service(project_config):
         sys.exit(1)
 
 def deploy_project(project_config):
-    if 'project_path' not in project_config:
+    if 'path' not in project_config:
         print("Error: Project path is required.")
         sys.exit(1)
     if 'branch_name' not in project_config:
@@ -190,7 +190,7 @@ def deploy_project(project_config):
     print(f"Deployment successful for {branch_name} on {project_path}")
 
 def revert_to_last_revision(project_config):
-    if 'project_path' not in project_config:
+    if 'path' not in project_config:
         print("Error: Project path is required.")
         sys.exit(1)
     if 'deploying_user' not in project_config:
@@ -228,7 +228,7 @@ def revert_to_last_revision(project_config):
         sys.exit(1)
 
 def update_php_packages(project_config):
-    if 'project_path' not in project_config:
+    if 'path' not in project_config:
         print("Error: Project path is required.")
         sys.exit(1)
     if 'deploying_user' not in project_config:
@@ -264,7 +264,7 @@ def update_php_packages(project_config):
         sys.exit(1)
 
 def update_node_packages(project_config):
-    if 'project_path' not in project_config:
+    if 'path' not in project_config:
         print("Error: Project path is required.")
         sys.exit(1)
     if 'deploying_user' not in project_config:
