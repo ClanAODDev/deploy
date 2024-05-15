@@ -24,7 +24,7 @@ def main(args, config):
         restart_supervisord_process(project_config)
     elif args.action == 'restart-service':
         restart_systemd_service(project_config)
-    elif args.action == 'revert-deployment:
+    elif args.action == 'revert-deployment':
         revert_to_last_revision(project_config)
     else:
         print("Error: Invalid action.")
