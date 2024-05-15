@@ -101,7 +101,7 @@ def deploy_project(project_config):
     if 'path' not in project_config:
         print("Error: Project path is required.")
         sys.exit(1)
-    if 'branch_name' not in project_config:
+    if 'branch' not in project_config:
         print("Error: Branch name is required.")
         sys.exit(1)
     if 'deploying_user' not in project_config:
