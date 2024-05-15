@@ -128,15 +128,13 @@ def deploy_project(project_config):
     try:
         completed_process = subprocess.run(commit_hash_command, shell=True, check=True, text=True, stdout=subprocess.PIPE)
         current_commit_hash = completed_process.stdout.strip()
-        print(f"Current commit hash: {current_commit_hash}")
     except subprocess.CalledProcessError as e:
         print(f"Failed to get current commit hash: {e.stderr}")
         sys.exit(1)
     last_revision_path = os.path.join(project_path, "LAST_REVISION")
     with open(last_revision_path, 'w') as file:
         file.write(current_commit_hash + "\n")
-    print(f"Updated LAST_REVISION file at {last_revision_path}")
-
+        print(f"Commit {current_commit_hash} stored as last revision")
     remote_branches = subprocess.getoutput(
         f"cd {project_path} && sudo -u {deploying_user} git branch -r"
     )
@@ -178,9 +176,6 @@ def deploy_project(project_config):
         except subprocess.CalledProcessError as e:
             print(f"Failed to run database migrations: {e.stderr.decode()}")
 
-    if process.returncode != 0:
-        raise Exception(f"Deployment failed: {stderr.decode().strip()}")
-
     # Ensure correct ownership of SQLite db
     if os.path.exists(database_file):
         stat_info = os.stat(database_file)
@@ -201,6 +196,9 @@ def deploy_project(project_config):
         sys.exit(1)
 
     print(f"Branch {branch_name} at {new_commit_hash} deployed to {project_path} successfully")
+
+    if process.returncode != 0:
+            raise Exception(f"Deployment failed: {stderr.decode().strip()}")
 
 def revert_to_last_revision(project_config):
     if 'path' not in project_config:
