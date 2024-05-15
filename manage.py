@@ -62,10 +62,10 @@ def git_fetch_with_retry(project_path, deploying_user, retries=3, delay=10):
     raise Exception(f"Failed to fetch from Git after several retries: {stderr.decode().strip()}")
 
 def restart_supervisord_process(project_config):
-    if project_config['container'] is None:
+    if 'container' not in project_config:
         print("Error: Container name is required for restart.")
         sys.exit(1)
-    if project_config['supervisor_process'] is None:
+    if 'supervisor_process' not in project_config:
         print("Error: Supervisord process name is required for restart.")
         sys.exit(1)
 
@@ -82,7 +82,7 @@ def restart_supervisord_process(project_config):
         sys.exit(1)
 
 def restart_systemd_service(project_config):
-    if project_config['systemd_service'] is None:
+    if 'systemd_service' not in project_config:
         print("Error: Systemd service name is required for restart.")
         sys.exit(1)
 
@@ -98,13 +98,13 @@ def restart_systemd_service(project_config):
         sys.exit(1)
 
 def deploy_project(project_config):
-    if project_config['project_path'] is None:
+    if 'project_path' not in project_config:
         print("Error: Project path is required.")
         sys.exit(1)
-    if project_config['branch_name'] is None:
+    if 'branch_name' not in project_config:
         print("Error: Branch name is required.")
         sys.exit(1)
-    if project_config['deploying_user'] is None:
+    if 'deploying_user' not in project_config:
         print("Error: Deploying user is required.")
         sys.exit(1)
 
@@ -190,10 +190,10 @@ def deploy_project(project_config):
     print(f"Deployment successful for {branch_name} on {project_path}")
 
 def revert_to_last_revision(project_config):
-    if project_config['project_path'] is None:
+    if 'project_path' not in project_config:
         print("Error: Project path is required.")
         sys.exit(1)
-    if project_config['deploying_user'] is None:
+    if 'deploying_user' not in project_config:
         print("Error: Deploying user is required.")
         sys.exit(1)
     
@@ -228,10 +228,10 @@ def revert_to_last_revision(project_config):
         sys.exit(1)
 
 def update_php_packages(project_config):
-    if project_config['project_path'] is None:
+    if 'project_path' not in project_config:
         print("Error: Project path is required.")
         sys.exit(1)
-    if project_config['deploying_user'] is None:
+    if 'deploying_user' not in project_config:
         print("Error: Deploying user is required.")
         sys.exit(1)
 
@@ -264,10 +264,10 @@ def update_php_packages(project_config):
         sys.exit(1)
 
 def update_node_packages(project_config):
-    if project_config['project_path'] is None:
+    if 'project_path' not in project_config:
         print("Error: Project path is required.")
         sys.exit(1)
-    if project_config['deploying_user'] is None:
+    if 'deploying_user' not in project_config:
         print("Error: Deploying user is required.")
         sys.exit(1)
 
