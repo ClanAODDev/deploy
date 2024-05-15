@@ -192,7 +192,15 @@ def deploy_project(project_config):
         if uid != nginx_uid or gid != nginx_data_gid:
             os.chown(database_file, nginx_uid, nginx_data_gid)
 
-    print(f"Deployment successful for {branch_name} on {project_path}")
+    new_hash_cmd = f"sudo -u {deploying_user} git -C {project_path} rev-parse HEAD"
+    try:
+        completed_process = subprocess.run(new_hash_cmd, shell=True, check=True, text=True, stdout=subprocess.PIPE)
+        new_commit_hash = completed_process.stdout.strip()
+    except subprocess.CalledProcessError as e:
+        print(f"Failed to get deployed commit hash: {e.stderr}")
+        sys.exit(1)
+
+    print(f"Branch {branch_name} at {new_commit_hash} deployed to {project_path} successfully")
 
 def revert_to_last_revision(project_config):
     if 'path' not in project_config:
