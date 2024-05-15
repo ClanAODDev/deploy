@@ -124,7 +124,7 @@ def deploy_project(project_config):
         sys.exit(1)
 
     # Track current revision in case we need to back out
-    commit_hash_command = f"sudo -u {deploying_user} git -C {project_path} rev-parse HEAD"
+    commit_hash_command = f"sudo -u {deploying_user} git -C {project_path} rev-parse --short HEAD"
     try:
         completed_process = subprocess.run(commit_hash_command, shell=True, check=True, text=True, stdout=subprocess.PIPE)
         current_commit_hash = completed_process.stdout.strip()
@@ -186,7 +186,7 @@ def deploy_project(project_config):
         except Exception as e:
             print(f"An unexpected error occurred: {e}")
 
-    new_hash_cmd = f"sudo -u {deploying_user} git -C {project_path} rev-parse HEAD"
+    new_hash_cmd = f"sudo -u {deploying_user} git -C {project_path} rev-parse --short HEAD"
     try:
         completed_process = subprocess.run(new_hash_cmd, shell=True, check=True, text=True, stdout=subprocess.PIPE)
         new_commit_hash = completed_process.stdout.strip()
