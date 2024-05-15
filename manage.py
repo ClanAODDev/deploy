@@ -178,14 +178,13 @@ def deploy_project(project_config):
 
     # Ensure correct ownership of SQLite db
     if os.path.exists(database_file):
-        stat_info = os.stat(database_file)
-        uid = stat_info.st_uid
-        gid = stat_info.st_gid
-        nginx_uid = pwd.getpwnam("nginx").pw_uid
-        nginx_data_gid = grp.getgrnam("nginx-data").gr_gid
-
-        if uid != nginx_uid or gid != nginx_data_gid:
-            os.chown(database_file, nginx_uid, nginx_data_gid)
+        command = f"chown nginx:nginx-data {database_file}"
+        try:
+            subprocess.run(command, check=True, shell=True)
+        except subprocess.CalledProcessError as e:
+            print(f"Failed to change ownership: {e}")
+        except Exception as e:
+            print(f"An unexpected error occurred: {e}")
 
     new_hash_cmd = f"sudo -u {deploying_user} git -C {project_path} rev-parse HEAD"
     try:
