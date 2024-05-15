@@ -234,9 +234,13 @@ def update_php_packages(project_config):
     if 'deploying_user' not in project_config:
         print("Error: Deploying user is required.")
         sys.exit(1)
+    if 'container' not in project_config:
+        print("Error: Container name is required to update PHP packages.")
+        sys.exit(1)
 
     project_path = project_config['path']
     deploying_user = project_config['deploying_user']
+    container_name = project_config['container']
     print(f"Updating PHP composer packages in {project_path}")
 
     if not os.path.exists(os.path.join(project_path, "composer.json")):
