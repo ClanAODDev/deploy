@@ -247,8 +247,8 @@ def update_php_packages(project_config):
         print(f"Error: No 'composer.json' found in the project directory. This is not a PHP project.")
         sys.exit(1)
 
-    docker_command = f"docker exec {container_name} /bin/bash -c 'cd {project_path} && composer update --no-interaction --no-dev'"
-    command = f"sudo -u {deploying_user} {docker_command} > /dev/null"
+    docker_command = f"docker exec -u {deploying_user} {container_name} /bin/bash -c 'cd {project_path} && composer update --no-interaction --no-dev'"
+    command = f"{docker_command} > /dev/null"
 
     try:
         process = subprocess.Popen(
