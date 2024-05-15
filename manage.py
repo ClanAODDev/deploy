@@ -6,7 +6,23 @@ import os
 import argparse
 import json
 
-def main(args, config):
+def load_config(config_file):
+    try:
+        with open(config_file, 'r') as file:
+            return json.load(file)
+    except FileNotFoundError:
+        print(f"Error: Configuration file '{config_file}' not found.")
+        sys.exit(1)
+    except json.JSONDecodeError:
+        print(f"Error: Configuration file '{config_file}' is not valid JSON.")
+        sys.exit(1)
+
+def main(args):
+    config = load_config(args.config if 'config' in args else 'deploy.config.json')
+    if 'projects' not in config:
+        print("Error: No projects defined in configuration")
+        sys.exit(1)    
+
     projects = config['projects']
     project_config = projects.get(args.project_key)
 
@@ -28,17 +44,6 @@ def main(args, config):
         revert_to_last_revision(project_config)
     else:
         print("Error: Invalid action.")
-        sys.exit(1)
-
-def load_config():
-    try:
-        with open('deploy.config.json', 'r') as file:
-            return json.load(file)
-    except FileNotFoundError:
-        print("Error: Configuration file 'config.json' not found.")
-        sys.exit(1)
-    except json.JSONDecodeError:
-        print("Error: Configuration file 'config.json' is not valid JSON.")
         sys.exit(1)
 
 def git_fetch_with_retry(project_path, deploying_user, retries=3, delay=10):
@@ -305,7 +310,6 @@ if __name__ == "__main__":
     if os.geteuid() != 0:
         print("Must be run as root.")
         sys.exit(1)
-    config = load_config()
     parser = argparse.ArgumentParser(description="Manage project deployments and updates.")
     parser.add_argument("project_key", help="Project key which includes the project and branch info")
     parser.add_argument("action", choices=[
@@ -316,6 +320,7 @@ if __name__ == "__main__":
         'restart-service', 
         'revert-deployment'
     ], help="Action to perform")
+    parser.add_argument("--config", help="Project configuration file")
 
     args = parser.parse_args()
-    main(args, config)
+    main(args)
