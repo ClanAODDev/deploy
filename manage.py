@@ -73,6 +73,7 @@ def restart_supervisord_process(project_config):
         'container', 'supervisor_process'
     ])
 
+
     container_name = project_config['container']
     process_name = project_config['supervisor_process']
     print(f"Restarting '{process_name}' supervisord process in '{container_name}'")
@@ -80,7 +81,7 @@ def restart_supervisord_process(project_config):
     command = f"docker exec {container_name} supervisorctl restart {process_name}"
     try:
         result = subprocess.run(command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        print(f"Successfully restarted '{process_name}' in '{container_name}'.")
+        print(f"Successfully restarted '{process_name}' in '{container_name}'")
     except subprocess.CalledProcessError as e:
         print(f"Failed to restart supervisord process '{process_name}' in '{container_name}'.: {e.stderr.decode()}")
         sys.exit(1)
@@ -96,9 +97,9 @@ def restart_systemd_service(project_config):
     command = f"service {service_name} restart"
     try:
         result = subprocess.run(command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        print(f"Successfully restarted '{service_name}'.")
+        print(f"Successfully restarted '{service_name}'")
     except subprocess.CalledProcessError as e:
-        print(f"Failed to restart service '{service_name}'.: {e.stderr.decode()}")
+        print(f"Failed to restart service '{service_name}': {e.stderr.decode()}")
         sys.exit(1)
 
 def deploy_project(project_config):
@@ -133,7 +134,7 @@ def deploy_project(project_config):
     )
 
     if f"origin/{branch_name}" not in remote_branches:
-        print(f"Error: Branch '{branch_name}' does not exist on the remote.")
+        print(f"Error: Branch '{branch_name}' does not exist on the remote")
         sys.exit(1)
 
     # Check for unstaged changes
@@ -165,7 +166,7 @@ def deploy_project(project_config):
         try:
             docker_command = f"docker exec -u {deploying_user} {project_config['container']} /usr/local/bin/php {project_path}/artisan migrate --force"
             subprocess.run(docker_command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            print("Database migrations completed successfully.")
+            print("Database migrations completed successfully")
         except subprocess.CalledProcessError as e:
             print(f"Failed to run database migrations: {e.stderr.decode()}")
 
@@ -222,7 +223,7 @@ def revert_to_last_revision(project_config):
     revert_command = f"sudo -u {deploying_user} git -C {project_path} reset --hard {last_commit_hash}"
     try:
         subprocess.run(revert_command, shell=True, check=True)
-        print(f"Successfully reverted to commit {last_commit_hash}.")
+        print(f"Successfully reverted to commit {last_commit_hash}")
     except subprocess.CalledProcessError as e:
         print(f"Failed to revert to commit {last_commit_hash}: {e.stderr.decode()}")
         sys.exit(1)
@@ -256,7 +257,7 @@ def update_php_packages(project_config):
         if process.returncode != 0:
             raise Exception("PHP package update failed: " + stderr.decode().strip())
 
-        print("PHP package update successful.")
+        print("PHP package update successful")
     except Exception as e:
         print("An error occurred during PHP package update: " + str(e))
         sys.exit(1)
@@ -288,7 +289,7 @@ def update_node_packages(project_config):
         if process.returncode != 0:
             raise Exception("Node.js package update failed: " + stderr.decode().strip())
 
-        print("Node.js package update successful.")
+        print("Node.js package update successful")
     except Exception as e:
         print("An error occurred during Node.js package update: " + str(e))
 
@@ -326,7 +327,7 @@ def validate_required_params(project_config, required_params):
 
 if __name__ == "__main__":
     if os.geteuid() != 0:
-        print("Must be run as root.")
+        print("Must be run as root")
         sys.exit(1)
     parser = argparse.ArgumentParser(description="Manage project deployments and updates.")
     parser.add_argument("project_key", help="Project key which includes the project and branch info")
