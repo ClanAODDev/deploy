@@ -294,7 +294,7 @@ def update_node_packages(project_config):
 
 def toggle_maintenance_mode(project_config):
     validate_required_params(project_config, [
-        'path', 'deploying_user'
+        'path', 'deploying_user', 'container',
     ])
 
     project_path = project_config['path']
