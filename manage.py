@@ -73,7 +73,6 @@ def restart_supervisord_process(project_config):
         'container', 'supervisor_process'
     ])
 
-
     container_name = project_config['container']
     process_name = project_config['supervisor_process']
     print(f"Restarting '{process_name}' supervisord process in '{container_name}'")
@@ -263,7 +262,7 @@ def update_php_packages(project_config):
         sys.exit(1)
 
 def update_node_packages(project_config):
-    if 'block_npm_updates' in project_config:
+    if 'block_npm_updates' in project_config and project_config['block_npm_updates'] is True:
         print("Error: This project does not allow NPM updates.")
         sys.exit(1)
         
