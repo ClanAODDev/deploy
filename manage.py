@@ -69,7 +69,7 @@ def git_fetch_with_retry(project_path, deploying_user, retries=3, delay=10):
     raise Exception(f"Failed to fetch from Git after several retries: {stderr.decode().strip()}")
 
 def restart_supervisord_process(project_config):
-    validate_parameters(project_config, [
+    validate_required_params(project_config, [
         'container', 'supervisor_process'
     ])
 
@@ -86,7 +86,7 @@ def restart_supervisord_process(project_config):
         sys.exit(1)
 
 def restart_systemd_service(project_config):
-    validate_parameters(project_config, [
+    validate_required_params(project_config, [
         'systemd_service',
     ])
 
@@ -102,7 +102,7 @@ def restart_systemd_service(project_config):
         sys.exit(1)
 
 def deploy_project(project_config):
-    validate_parameters(project_config, [
+    validate_required_params(project_config, [
         'path', 'branch', 'deploying_user'
     ])
 
@@ -193,7 +193,7 @@ def deploy_project(project_config):
             raise Exception(f"Deployment failed: {stderr.decode().strip()}")
 
 def revert_to_last_revision(project_config):
-    validate_parameters(project_config, [
+    validate_required_params(project_config, [
         'path', 'deploying_user'
     ])
     
@@ -228,7 +228,7 @@ def revert_to_last_revision(project_config):
         sys.exit(1)
 
 def update_php_packages(project_config):
-    validate_parameters(project_config, [
+    validate_required_params(project_config, [
         'path', 'deploying_user', 'container'
     ])
 
@@ -262,7 +262,7 @@ def update_php_packages(project_config):
         sys.exit(1)
 
 def update_node_packages(project_config):
-    validate_parameters(project_config, [
+    validate_required_params(project_config, [
         'path', 'deploying_user'
     ])
 
@@ -293,7 +293,7 @@ def update_node_packages(project_config):
         print("An error occurred during Node.js package update: " + str(e))
 
 def toggle_maintenance_mode(project_config):
-    validate_parameters(project_config, [
+    validate_required_params(project_config, [
         'path', 'deploying_user'
     ])
 
@@ -318,7 +318,7 @@ def toggle_maintenance_mode(project_config):
         print(f"Failed to change maintenance mode: {e.stderr.decode()}")
         sys.exit(1)
 
-def validate_parameters(project_config, required_params):
+def validate_required_params(project_config, required_params):
     for key in required_params:
         if key not in project_config:
             print(f"Error: {key.replace('_', ' ').capitalize()} is required.")
