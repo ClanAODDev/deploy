@@ -6,7 +6,23 @@ import os
 import argparse
 import json
 
-def main(args, config):
+def load_config(config_file):
+    try:
+        with open(config_file, 'r') as file:
+            return json.load(file)
+    except FileNotFoundError:
+        print(f"Error: Configuration file '{config_file}' not found.")
+        sys.exit(1)
+    except json.JSONDecodeError:
+        print(f"Error: Configuration file '{config_file}' is not valid JSON.")
+        sys.exit(1)
+
+def main(args):
+    config = load_config(args.config if 'config' in args else 'deploy.config.json')
+    if 'projects' not in config:
+        print("Error: No projects defined in configuration")
+        sys.exit(1)    
+
     projects = config['projects']
     project_config = projects.get(args.project_key)
 
@@ -26,19 +42,10 @@ def main(args, config):
         restart_systemd_service(project_config)
     elif args.action == 'revert-deployment':
         revert_to_last_revision(project_config)
+    elif args.action == 'toggle-maintenance':
+        toggle_maintenance_mode(project_config)
     else:
         print("Error: Invalid action.")
-        sys.exit(1)
-
-def load_config():
-    try:
-        with open('deploy.config.json', 'r') as file:
-            return json.load(file)
-    except FileNotFoundError:
-        print("Error: Configuration file 'config.json' not found.")
-        sys.exit(1)
-    except json.JSONDecodeError:
-        print("Error: Configuration file 'config.json' is not valid JSON.")
         sys.exit(1)
 
 def git_fetch_with_retry(project_path, deploying_user, retries=3, delay=10):
@@ -62,12 +69,10 @@ def git_fetch_with_retry(project_path, deploying_user, retries=3, delay=10):
     raise Exception(f"Failed to fetch from Git after several retries: {stderr.decode().strip()}")
 
 def restart_supervisord_process(project_config):
-    if 'container' not in project_config:
-        print("Error: Container name is required for restart.")
-        sys.exit(1)
-    if 'supervisor_process' not in project_config:
-        print("Error: Supervisord process name is required for restart.")
-        sys.exit(1)
+    validate_required_params(project_config, [
+        'container', 'supervisor_process'
+    ])
+
 
     container_name = project_config['container']
     process_name = project_config['supervisor_process']
@@ -76,15 +81,15 @@ def restart_supervisord_process(project_config):
     command = f"docker exec {container_name} supervisorctl restart {process_name}"
     try:
         result = subprocess.run(command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        print(f"Successfully restarted '{process_name}' in '{container_name}'.")
+        print(f"Successfully restarted '{process_name}' in '{container_name}'")
     except subprocess.CalledProcessError as e:
         print(f"Failed to restart supervisord process '{process_name}' in '{container_name}'.: {e.stderr.decode()}")
         sys.exit(1)
 
 def restart_systemd_service(project_config):
-    if 'systemd_service' not in project_config:
-        print("Error: Systemd service name is required for restart.")
-        sys.exit(1)
+    validate_required_params(project_config, [
+        'systemd_service',
+    ])
 
     service_name = project_config['systemd_service']
     print(f"Restarting '{service_name}'")
@@ -92,21 +97,15 @@ def restart_systemd_service(project_config):
     command = f"service {service_name} restart"
     try:
         result = subprocess.run(command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        print(f"Successfully restarted '{service_name}'.")
+        print(f"Successfully restarted '{service_name}'")
     except subprocess.CalledProcessError as e:
-        print(f"Failed to restart service '{service_name}'.: {e.stderr.decode()}")
+        print(f"Failed to restart service '{service_name}': {e.stderr.decode()}")
         sys.exit(1)
 
 def deploy_project(project_config):
-    if 'project_path' not in project_config:
-        print("Error: Project path is required.")
-        sys.exit(1)
-    if 'branch_name' not in project_config:
-        print("Error: Branch name is required.")
-        sys.exit(1)
-    if 'deploying_user' not in project_config:
-        print("Error: Deploying user is required.")
-        sys.exit(1)
+    validate_required_params(project_config, [
+        'path', 'branch', 'deploying_user'
+    ])
 
     project_path = project_config['path']
     branch_name = project_config['branch']
@@ -119,25 +118,23 @@ def deploy_project(project_config):
         sys.exit(1)
 
     # Track current revision in case we need to back out
-    commit_hash_command = f"sudo -u {deploying_user} git -C {project_path} rev-parse HEAD"
+    commit_hash_command = f"sudo -u {deploying_user} git -C {project_path} rev-parse --short HEAD"
     try:
         completed_process = subprocess.run(commit_hash_command, shell=True, check=True, text=True, stdout=subprocess.PIPE)
         current_commit_hash = completed_process.stdout.strip()
-        print(f"Current commit hash: {current_commit_hash}")
     except subprocess.CalledProcessError as e:
         print(f"Failed to get current commit hash: {e.stderr}")
         sys.exit(1)
     last_revision_path = os.path.join(project_path, "LAST_REVISION")
     with open(last_revision_path, 'w') as file:
         file.write(current_commit_hash + "\n")
-    print(f"Updated LAST_REVISION file at {last_revision_path}")
-
+        print(f"Commit {current_commit_hash} stored as last revision")
     remote_branches = subprocess.getoutput(
         f"cd {project_path} && sudo -u {deploying_user} git branch -r"
     )
 
     if f"origin/{branch_name}" not in remote_branches:
-        print(f"Error: Branch '{branch_name}' does not exist on the remote.")
+        print(f"Error: Branch '{branch_name}' does not exist on the remote")
         sys.exit(1)
 
     # Check for unstaged changes
@@ -167,35 +164,39 @@ def deploy_project(project_config):
     # gracefully handle deploying Laravel projects
     if 'container' in project_config:
         try:
-            docker_command = f"docker exec {project_config['container']} /usr/bin/php {project_path}/artisan migrate --force"
+            docker_command = f"docker exec -u {deploying_user} {project_config['container']} /usr/local/bin/php {project_path}/artisan migrate --force"
             subprocess.run(docker_command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            print("Database migrations completed successfully.")
+            print("Database migrations completed successfully")
         except subprocess.CalledProcessError as e:
             print(f"Failed to run database migrations: {e.stderr.decode()}")
 
-    if process.returncode != 0:
-        raise Exception(f"Deployment failed: {stderr.decode().strip()}")
-
     # Ensure correct ownership of SQLite db
     if os.path.exists(database_file):
-        stat_info = os.stat(database_file)
-        uid = stat_info.st_uid
-        gid = stat_info.st_gid
-        nginx_uid = pwd.getpwnam("nginx").pw_uid
-        nginx_data_gid = grp.getgrnam("nginx-data").gr_gid
+        command = f"chown nginx:nginx-data {database_file}"
+        try:
+            subprocess.run(command, check=True, shell=True)
+        except subprocess.CalledProcessError as e:
+            print(f"Failed to change ownership: {e}")
+        except Exception as e:
+            print(f"An unexpected error occurred: {e}")
 
-        if uid != nginx_uid or gid != nginx_data_gid:
-            os.chown(database_file, nginx_uid, nginx_data_gid)
+    new_hash_cmd = f"sudo -u {deploying_user} git -C {project_path} rev-parse --short HEAD"
+    try:
+        completed_process = subprocess.run(new_hash_cmd, shell=True, check=True, text=True, stdout=subprocess.PIPE)
+        new_commit_hash = completed_process.stdout.strip()
+    except subprocess.CalledProcessError as e:
+        print(f"Failed to get deployed commit hash: {e.stderr}")
+        sys.exit(1)
 
-    print(f"Deployment successful for {branch_name} on {project_path}")
+    print(f"Branch {branch_name} at {new_commit_hash} deployed to {project_path} successfully")
+
+    if process.returncode != 0:
+            raise Exception(f"Deployment failed: {stderr.decode().strip()}")
 
 def revert_to_last_revision(project_config):
-    if 'project_path' not in project_config:
-        print("Error: Project path is required.")
-        sys.exit(1)
-    if 'deploying_user' not in project_config:
-        print("Error: Deploying user is required.")
-        sys.exit(1)
+    validate_required_params(project_config, [
+        'path', 'deploying_user'
+    ])
     
     project_path = project_config['path']
     deploying_user = project_config['deploying_user']
@@ -222,29 +223,27 @@ def revert_to_last_revision(project_config):
     revert_command = f"sudo -u {deploying_user} git -C {project_path} reset --hard {last_commit_hash}"
     try:
         subprocess.run(revert_command, shell=True, check=True)
-        print(f"Successfully reverted to commit {last_commit_hash}.")
+        print(f"Successfully reverted to commit {last_commit_hash}")
     except subprocess.CalledProcessError as e:
         print(f"Failed to revert to commit {last_commit_hash}: {e.stderr.decode()}")
         sys.exit(1)
 
 def update_php_packages(project_config):
-    if 'project_path' not in project_config:
-        print("Error: Project path is required.")
-        sys.exit(1)
-    if 'deploying_user' not in project_config:
-        print("Error: Deploying user is required.")
-        sys.exit(1)
+    validate_required_params(project_config, [
+        'path', 'deploying_user', 'container'
+    ])
 
     project_path = project_config['path']
     deploying_user = project_config['deploying_user']
+    container_name = project_config['container']
     print(f"Updating PHP composer packages in {project_path}")
 
     if not os.path.exists(os.path.join(project_path, "composer.json")):
         print(f"Error: No 'composer.json' found in the project directory. This is not a PHP project.")
         sys.exit(1)
 
-    docker_command = f"docker exec {container_name} /bin/bash -c 'cd {project_path} && composer update --no-interaction --no-dev'"
-    command = f"sudo -u {deploying_user} {docker_command} > /dev/null"
+    docker_command = f"docker exec -u {deploying_user} {container_name} /bin/bash -c 'cd {project_path} && composer update --no-interaction --no-dev'"
+    command = f"{docker_command} > /dev/null"
 
     try:
         process = subprocess.Popen(
@@ -258,21 +257,19 @@ def update_php_packages(project_config):
         if process.returncode != 0:
             raise Exception("PHP package update failed: " + stderr.decode().strip())
 
-        print("PHP package update successful.")
+        print("PHP package update successful")
     except Exception as e:
         print("An error occurred during PHP package update: " + str(e))
         sys.exit(1)
 
 def update_node_packages(project_config):
-    if 'project_path' not in project_config:
-        print("Error: Project path is required.")
-        sys.exit(1)
-    if 'deploying_user' not in project_config:
-        print("Error: Deploying user is required.")
-        sys.exit(1)
     if 'block_npm_updates' in project_config:
         print("Error: This project does not allow NPM updates.")
         sys.exit(1)
+        
+    validate_required_params(project_config, [
+        'path', 'deploying_user'
+    ])
 
     project_path = project_config['path']
     deploying_user = project_config['deploying_user']
@@ -300,11 +297,42 @@ def update_node_packages(project_config):
     except Exception as e:
         print("An error occurred during NPM package update: " + str(e))
 
+def toggle_maintenance_mode(project_config):
+    validate_required_params(project_config, [
+        'path', 'deploying_user', 'container',
+    ])
+
+    project_path = project_config['path']
+    deploying_user = project_config['deploying_user']
+
+    artisan_path = os.path.join(project_path, 'artisan')
+    maintenance_file = os.path.join(project_path, 'storage', 'framework', 'maintenance.php')
+
+    if not os.path.exists(artisan_path):
+        print(f"Error: Maintenance not supported for this project. Operation aborted.")
+        sys.exit(1)
+
+    action = 'up' if os.path.exists(maintenance_file) else 'down'
+
+    command = f"docker exec -u {deploying_user} {project_config['container']} /usr/local/bin/php {artisan_path} {action}"
+
+    try:
+        subprocess.run(command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        print(f"Successfully changed maintenance mode to '{action}'.")
+    except subprocess.CalledProcessError as e:
+        print(f"Failed to change maintenance mode: {e.stderr.decode()}")
+        sys.exit(1)
+
+def validate_required_params(project_config, required_params):
+    for key in required_params:
+        if key not in project_config:
+            print(f"Error: {key.replace('_', ' ').capitalize()} is required.")
+            sys.exit(1)
+
 if __name__ == "__main__":
     if os.geteuid() != 0:
-        print("Must be run as root.")
+        print("Must be run as root")
         sys.exit(1)
-    config = load_config()
     parser = argparse.ArgumentParser(description="Manage project deployments and updates.")
     parser.add_argument("project_key", help="Project key which includes the project and branch info")
     parser.add_argument("action", choices=[
@@ -313,8 +341,10 @@ if __name__ == "__main__":
         'update-npm',
         'restart-supervisor', 
         'restart-service', 
-        'revert-deployment'
+        'revert-deployment',
+        'toggle-maintenance'
     ], help="Action to perform")
+    parser.add_argument("--config", help="Project configuration file")
 
     args = parser.parse_args()
-    main(args, config)
+    main(args)
