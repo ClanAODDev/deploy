@@ -34,8 +34,8 @@ def main(args):
         deploy_project(project_config)
     elif args.action == 'update-php':
         update_php_packages(project_config)
-    elif args.action == 'update-node':
-        update_node_packages(project_config)
+    elif args.action == 'update-npm':
+        update_npm_packages(project_config)
     elif args.action == 'restart-supervisor':
         restart_supervisord_process(project_config)
     elif args.action == 'restart-service':
@@ -72,7 +72,6 @@ def restart_supervisord_process(project_config):
     validate_required_params(project_config, [
         'container', 'supervisor_process'
     ])
-
 
     container_name = project_config['container']
     process_name = project_config['supervisor_process']
@@ -263,13 +262,17 @@ def update_php_packages(project_config):
         sys.exit(1)
 
 def update_node_packages(project_config):
+    if 'block_npm_updates' in project_config and project_config['block_npm_updates'] is True:
+        print("Error: This project does not allow NPM updates.")
+        sys.exit(1)
+        
     validate_required_params(project_config, [
         'path', 'deploying_user'
     ])
 
     project_path = project_config['path']
     deploying_user = project_config['deploying_user']
-    print(f"Updating Node packages in {project_path}")
+    print(f"Updating NPM packages in {project_path}")
 
     if not os.path.exists(os.path.join(project_path, "package.json")):
         print(f"Error: No 'package.json' found in the project directory. Not a Node.js project.")
@@ -287,11 +290,11 @@ def update_node_packages(project_config):
         stdout, stderr = process.communicate()
 
         if process.returncode != 0:
-            raise Exception("Node.js package update failed: " + stderr.decode().strip())
+            raise Exception("NPM package update failed: " + stderr.decode().strip())
 
-        print("Node.js package update successful")
+        print("NPM package update successful.")
     except Exception as e:
-        print("An error occurred during Node.js package update: " + str(e))
+        print("An error occurred during NPM package update: " + str(e))
 
 def toggle_maintenance_mode(project_config):
     validate_required_params(project_config, [
@@ -334,7 +337,7 @@ if __name__ == "__main__":
     parser.add_argument("action", choices=[
         'deploy', 
         'update-php', 
-        'update-node', 
+        'update-npm',
         'restart-supervisor', 
         'restart-service', 
         'revert-deployment',

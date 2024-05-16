@@ -14,7 +14,8 @@ Example `config.json`:
             "path": "/path/to/project1",
             "branch": "develop",
             "container": "php-fpm-container1",
-            "supervisor_process": "supervisord-process-name"
+            "supervisor_process": "supervisord-process-name",
+            "block_npm_updates": true
         },
         "discord-bot-dev": {
             "deploying_user": "username",
@@ -26,10 +27,18 @@ Example `config.json`:
 }
 ```
 
-
+| Project Key        | Value                                                                                                   |
+|--------------------|---------------------------------------------------------------------------------------------------------|
+| deploying_user     | User account configured to pull changes from GitHub, perform deployment tasks, etc                      |
+| path               | Absolute path to the project                                                                            |
+| branch             | Git branch to lock the project to. Deployments will only use this branch.                               |
+| supervisor_process | If a supervisor process exists for the project, the process name (Depends on Docker)                    |
+| container          | If the project runs inside a Docker container, the container name (PHP projects currently require this) |
+| block_npm_updates  | Useful if the project has a `package.json` but shouldn't have a `node_modules` folder built             |
+| systemd_service    | If the project runs in a systemd service, the service name to enable restarts                           |
 
 ### Usage
 
 ```
-manage.py [-h] project_key {deploy,update-php,update-node,restart-supervisor,restart-service,revert-deployment}
+manage.py [-h] project_key {deploy,update-php,update-node,restart-supervisor,restart-service,revert-deployment,toggle-maintenance}
 ```
