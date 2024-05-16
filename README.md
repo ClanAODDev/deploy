@@ -14,7 +14,8 @@ Example `config.json`:
             "path": "/path/to/project1",
             "branch": "develop",
             "container": "php-fpm-container1",
-            "supervisor_process": "supervisord-process-name"
+            "supervisor_process": "supervisord-process-name",
+            "block_npm_updates": true
         },
         "discord-bot-dev": {
             "deploying_user": "username",
