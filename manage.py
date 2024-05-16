@@ -69,12 +69,9 @@ def git_fetch_with_retry(project_path, deploying_user, retries=3, delay=10):
     raise Exception(f"Failed to fetch from Git after several retries: {stderr.decode().strip()}")
 
 def restart_supervisord_process(project_config):
-    if 'container' not in project_config:
-        print("Error: Container name is required for restart.")
-        sys.exit(1)
-    if 'supervisor_process' not in project_config:
-        print("Error: Supervisord process name is required for restart.")
-        sys.exit(1)
+    validate_parameters(project_config, [
+        'container', 'supervisor_process'
+    ])
 
     container_name = project_config['container']
     process_name = project_config['supervisor_process']
@@ -89,9 +86,9 @@ def restart_supervisord_process(project_config):
         sys.exit(1)
 
 def restart_systemd_service(project_config):
-    if 'systemd_service' not in project_config:
-        print("Error: Systemd service name is required for restart.")
-        sys.exit(1)
+    validate_parameters(project_config, [
+        'systemd_service',
+    ])
 
     service_name = project_config['systemd_service']
     print(f"Restarting '{service_name}'")
@@ -105,15 +102,9 @@ def restart_systemd_service(project_config):
         sys.exit(1)
 
 def deploy_project(project_config):
-    if 'path' not in project_config:
-        print("Error: Project path is required.")
-        sys.exit(1)
-    if 'branch' not in project_config:
-        print("Error: Branch name is required.")
-        sys.exit(1)
-    if 'deploying_user' not in project_config:
-        print("Error: Deploying user is required.")
-        sys.exit(1)
+    validate_parameters(project_config, [
+        'path', 'branch', 'deploying_user'
+    ])
 
     project_path = project_config['path']
     branch_name = project_config['branch']
@@ -202,12 +193,9 @@ def deploy_project(project_config):
             raise Exception(f"Deployment failed: {stderr.decode().strip()}")
 
 def revert_to_last_revision(project_config):
-    if 'path' not in project_config:
-        print("Error: Project path is required.")
-        sys.exit(1)
-    if 'deploying_user' not in project_config:
-        print("Error: Deploying user is required.")
-        sys.exit(1)
+    validate_parameters(project_config, [
+        'path', 'deploying_user'
+    ])
     
     project_path = project_config['path']
     deploying_user = project_config['deploying_user']
@@ -240,15 +228,9 @@ def revert_to_last_revision(project_config):
         sys.exit(1)
 
 def update_php_packages(project_config):
-    if 'path' not in project_config:
-        print("Error: Project path is required.")
-        sys.exit(1)
-    if 'deploying_user' not in project_config:
-        print("Error: Deploying user is required.")
-        sys.exit(1)
-    if 'container' not in project_config:
-        print("Error: Container name is required to update PHP packages.")
-        sys.exit(1)
+    validate_parameters(project_config, [
+        'path', 'deploying_user', 'container'
+    ])
 
     project_path = project_config['path']
     deploying_user = project_config['deploying_user']
@@ -280,12 +262,9 @@ def update_php_packages(project_config):
         sys.exit(1)
 
 def update_node_packages(project_config):
-    if 'path' not in project_config:
-        print("Error: Project path is required.")
-        sys.exit(1)
-    if 'deploying_user' not in project_config:
-        print("Error: Deploying user is required.")
-        sys.exit(1)
+    validate_parameters(project_config, [
+        'path', 'deploying_user'
+    ])
 
     project_path = project_config['path']
     deploying_user = project_config['deploying_user']
@@ -314,8 +293,13 @@ def update_node_packages(project_config):
         print("An error occurred during Node.js package update: " + str(e))
 
 def toggle_maintenance_mode(project_config):
+    validate_parameters(project_config, [
+        'path', 'deploying_user'
+    ])
+
     project_path = project_config['path']
     deploying_user = project_config['deploying_user']
+
     artisan_path = os.path.join(project_path, 'artisan')
     maintenance_file = os.path.join(project_path, 'storage', 'framework', 'maintenance.php')
 
@@ -333,6 +317,12 @@ def toggle_maintenance_mode(project_config):
     except subprocess.CalledProcessError as e:
         print(f"Failed to change maintenance mode: {e.stderr.decode()}")
         sys.exit(1)
+
+def validate_parameters(project_config, required_params):
+    for key in required_params:
+        if key not in project_config:
+            print(f"Error: {key.replace('_', ' ').capitalize()} is required.")
+            sys.exit(1)
 
 if __name__ == "__main__":
     if os.geteuid() != 0:
