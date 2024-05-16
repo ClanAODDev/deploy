@@ -261,7 +261,7 @@ def update_php_packages(project_config):
         print("An error occurred during PHP package update: " + str(e))
         sys.exit(1)
 
-def update_node_packages(project_config):
+def update_npm_packages(project_config):
     if 'block_npm_updates' in project_config and project_config['block_npm_updates'] is True:
         print("Error: This project does not allow NPM updates.")
         sys.exit(1)
