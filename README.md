@@ -40,5 +40,13 @@ Example `config.json`:
 ### Usage
 
 ```
-manage.py [-h] project_key {deploy,update-php,update-node,restart-supervisor,restart-service,revert-deployment,toggle-maintenance}
+manage.py [-h] project_key {
+    deploy,               # Pull the latest changes from the designated branch
+    update-php,           # Run a `composer update --no-dev`
+    update-node,          # Run a `npm update`
+    restart-supervisor,   # Restart the designated supervisord process
+    restart-service,      # Restart the designated systemd service
+    revert-deployment,    # Reverts a deployment to the previous commit (defined in LAST_REVISION)
+    toggle-maintenance    # Laravel-specific - toggles maintenance mode up or down
+}
 ```
