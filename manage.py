@@ -42,6 +42,8 @@ def main(args):
         restart_systemd_service(project_config)
     elif args.action == 'revert-deployment':
         revert_to_last_revision(project_config)
+    elif args.action == 'toggle-maintenance':
+        toggle_maintenance_mode(project_config)
     else:
         print("Error: Invalid action.")
         sys.exit(1)
@@ -311,6 +313,27 @@ def update_node_packages(project_config):
     except Exception as e:
         print("An error occurred during Node.js package update: " + str(e))
 
+def toggle_maintenance_mode(project_config):
+    project_path = project_config['path']
+    deploying_user = project_config['deploying_user']
+    artisan_path = os.path.join(project_path, 'artisan')
+    maintenance_file = os.path.join(project_path, 'storage', 'framework', 'maintenance.php')
+
+    if not os.path.exists(artisan_path):
+        print(f"Error: Maintenance not supported for this project. Operation aborted.")
+        sys.exit(1)
+
+    action = 'up' if os.path.exists(maintenance_file) else 'down'
+
+    command = f"sudo -u {deploying_user} php {artisan_path} {action}"
+
+    try:
+        subprocess.run(command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        print(f"Successfully changed maintenance mode to '{action}'.")
+    except subprocess.CalledProcessError as e:
+        print(f"Failed to change maintenance mode: {e.stderr.decode()}")
+        sys.exit(1)
+
 if __name__ == "__main__":
     if os.geteuid() != 0:
         print("Must be run as root.")
@@ -323,7 +346,8 @@ if __name__ == "__main__":
         'update-node', 
         'restart-supervisor', 
         'restart-service', 
-        'revert-deployment'
+        'revert-deployment',
+        'toggle-maintenance'
     ], help="Action to perform")
     parser.add_argument("--config", help="Project configuration file")
 
