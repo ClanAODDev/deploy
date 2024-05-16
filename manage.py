@@ -325,7 +325,7 @@ def toggle_maintenance_mode(project_config):
 
     action = 'up' if os.path.exists(maintenance_file) else 'down'
 
-    command = f"sudo -u {deploying_user} php {artisan_path} {action}"
+    command = f"docker exec -u {deploying_user} {project_config['container']} /usr/local/bin/php {artisan_path} {action}"
 
     try:
         subprocess.run(command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
