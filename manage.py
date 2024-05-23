@@ -331,10 +331,8 @@ def tracker_forum_sync(project_config):
 
     project_path = project_config['path']
     deploying_user = project_config['deploying_user']
-
     artisan_path = os.path.join(project_path, 'artisan')
-    maintenance_file = os.path.join(project_path, 'storage', 'framework', 'maintenance.php')
-
+    
     command = f"docker exec -u {deploying_user} {project_config['container']} /usr/local/bin/php {artisan_path} do:memberysnc"
 
     try:
