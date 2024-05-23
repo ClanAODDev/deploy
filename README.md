@@ -48,5 +48,6 @@ manage.py [-h] project_key {
     restart-service,      # Restart the designated systemd service
     revert-deployment,    # Reverts a deployment to the previous commit (defined in LAST_REVISION)
     toggle-maintenance    # Laravel-specific - toggles maintenance mode up or down
+    tracker-sync          # Should only be run on the production Tracker project, syncs forum data with tracker data
 }
 ```
