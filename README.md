@@ -29,6 +29,7 @@ Example `config.json`:
 
 | Project Key        | Value                                                                                                   |
 |--------------------|---------------------------------------------------------------------------------------------------------|
+| cron_user          | Necessary for any process that needs to run with a user other than the deploying user                   |
 | deploying_user     | User account configured to pull changes from GitHub, perform deployment tasks, etc                      |
 | path               | Absolute path to the project                                                                            |
 | branch             | Git branch to lock the project to. Deployments will only use this branch.                               |
