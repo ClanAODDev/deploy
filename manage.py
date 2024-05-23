@@ -44,6 +44,8 @@ def main(args):
         revert_to_last_revision(project_config)
     elif args.action == 'toggle-maintenance':
         toggle_maintenance_mode(project_config)
+    elif args.action == 'tracker-sync':
+        tracker_forum_sync(project_config)
     else:
         print("Error: Invalid action.")
         sys.exit(1)
@@ -322,6 +324,26 @@ def toggle_maintenance_mode(project_config):
         print(f"Failed to change maintenance mode: {e.stderr.decode()}")
         sys.exit(1)
 
+def tracker_forum_sync(project_config):
+    validate_required_params(project_config, [
+        'path', 'deploying_user', 'container'
+    ])
+
+    project_path = project_config['path']
+    deploying_user = project_config['deploying_user']
+
+    artisan_path = os.path.join(project_path, 'artisan')
+    maintenance_file = os.path.join(project_path, 'storage', 'framework', 'maintenance.php')
+
+    command = f"docker exec -u {deploying_user} {project_config['container']} /usr/local/bin/php {artisan_path} do:memberysnc"
+
+    try:
+        subprocess.run(command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        print(f"Member sync completed")
+    except subprocess.CalledProcessError as e:
+        print(f"Member sync failed: {e.stderr.decode()}")
+        sys.exit(1)
+
 def validate_required_params(project_config, required_params):
     for key in required_params:
         if key not in project_config:
@@ -341,7 +363,8 @@ if __name__ == "__main__":
         'restart-supervisor', 
         'restart-service', 
         'revert-deployment',
-        'toggle-maintenance'
+        'toggle-maintenance',
+        'tracker-sync',
     ], help="Action to perform")
     parser.add_argument("--config", help="Project configuration file")
 
