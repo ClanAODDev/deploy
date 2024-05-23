@@ -326,14 +326,14 @@ def toggle_maintenance_mode(project_config):
 
 def tracker_forum_sync(project_config):
     validate_required_params(project_config, [
-        'path', 'deploying_user', 'container'
+        'path', 'cron_user', 'container'
     ])
 
     project_path = project_config['path']
-    deploying_user = project_config['deploying_user']
+    cron_user = project_config['cron_user']
     artisan_path = os.path.join(project_path, 'artisan')
     
-    command = f"docker exec -u {deploying_user} {project_config['container']} /usr/local/bin/php {artisan_path} do:membersync"
+    command = f"docker exec -u {cron_user} {project_config['container']} /usr/local/bin/php {artisan_path} do:membersync"
 
     try:
         subprocess.run(command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
