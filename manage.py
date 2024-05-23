@@ -333,7 +333,7 @@ def tracker_forum_sync(project_config):
     deploying_user = project_config['deploying_user']
     artisan_path = os.path.join(project_path, 'artisan')
     
-    command = f"docker exec -u {deploying_user} {project_config['container']} /usr/local/bin/php {artisan_path} do:memberysnc"
+    command = f"docker exec -u {deploying_user} {project_config['container']} /usr/local/bin/php {artisan_path} do:membersync"
 
     try:
         subprocess.run(command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
