@@ -332,12 +332,10 @@ def tracker_forum_sync(project_config):
     project_path = project_config['path']
     cron_user = project_config['cron_user']
     artisan_path = os.path.join(project_path, 'artisan')
-    command = f"docker exec -u {cron_user} {project_config['container']} /usr/local/bin/php {artisan_path} do:membersync"
+    command = f"docker exec -u {cron_user} {project_config['container']} /usr/local/bin/php {artisan_path} do:membersync | grep -v 'Module \"apcu\" is already loaded'"
 
     try:
-        process = subprocess.run(command, shell=True, check=True, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        filtered_output = "\n".join(line for line in process.stdout.splitlines() if "Warning: Module 'apcu' is already loaded" not in line)
-        print(filtered_output)
+        subprocess.run(command, shell=True, check=True)
         print(f"Member sync completed")
     except subprocess.CalledProcessError as e:
         print(f"Member sync failed: {e.stderr.decode()}")
