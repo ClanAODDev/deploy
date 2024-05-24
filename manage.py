@@ -336,7 +336,7 @@ def tracker_forum_sync(project_config):
 
     try:
         process = subprocess.run(command, shell=True, check=True, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        filtered_output = "\n".join(line for line in process.stdout.splitlines() if "Module 'apcu' is already loaded" not in line)
+        filtered_output = "\n".join(line for line in process.stdout.splitlines() if "Warning: Module 'apcu' is already loaded" not in line)
         print(filtered_output)
         print(f"Member sync completed")
     except subprocess.CalledProcessError as e:
