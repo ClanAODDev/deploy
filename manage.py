@@ -336,7 +336,7 @@ def tracker_forum_sync(project_config):
     command = f"docker exec -u {cron_user} {project_config['container']} /usr/local/bin/php {artisan_path} do:membersync"
 
     try:
-        subprocess.run(command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        subprocess.run(command, shell=True, check=True)
         print(f"Member sync completed")
     except subprocess.CalledProcessError as e:
         print(f"Member sync failed: {e.stderr.decode()}")
