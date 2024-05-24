@@ -166,8 +166,11 @@ def deploy_project(project_config):
     if 'container' in project_config:
         try:
             docker_command = f"docker exec -u {deploying_user} {project_config['container']} /usr/local/bin/php {project_path}/artisan migrate --force"
-            subprocess.run(command, shell=True, check=True)
-            print("Database migrations completed successfully")
+            result = subprocess.run(docker_command, shell=True, check=True, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            print(result.stdout) 
+            if result.stderr:
+                print(f"Warnings/Errors during migration: {result.stderr}", file=sys.stderr)
+            print("Database migrations completed successfully.")
         except subprocess.CalledProcessError as e:
             print(f"Failed to run database migrations: {e.stderr.decode()}")
 
