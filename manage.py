@@ -5,6 +5,7 @@ import sys
 import os
 import argparse
 import json
+import time
 
 
 def load_config(config_file):
@@ -54,6 +55,7 @@ def main(args):
 
 
 def git_fetch_with_retry(project_path, deploying_user, retries=3, delay=10):
+    stderr = None
     command = [
         f"cd {project_path}",
         f"sudo -u {deploying_user} git fetch --all"
@@ -71,6 +73,7 @@ def git_fetch_with_retry(project_path, deploying_user, retries=3, delay=10):
             return True
         retries -= 1
         time.sleep(delay)  # Wait before retrying
+
     raise Exception(f"Failed to fetch from Git after several retries: {stderr.decode().strip()}")
 
 
@@ -124,14 +127,7 @@ def deploy_project(project_config):
         sys.exit(1)
 
     # Track current revision in case we need to back out
-    commit_hash_command = f"sudo -u {deploying_user} git -C {project_path} rev-parse --short HEAD"
-    try:
-        completed_process = subprocess.run(commit_hash_command, shell=True, check=True, text=True,
-                                           stdout=subprocess.PIPE)
-        current_commit_hash = completed_process.stdout.strip()
-    except subprocess.CalledProcessError as e:
-        print(f"Failed to get current commit hash: {e.stderr}")
-        sys.exit(1)
+    current_commit_hash = get_commit_hash(deploying_user, project_path)
     last_revision_path = os.path.join(project_path, "LAST_REVISION")
     with open(last_revision_path, 'w') as file:
         file.write(current_commit_hash + "\n")
@@ -183,18 +179,24 @@ def deploy_project(project_config):
 
     check_sqlite_perms(os.path.join(project_path, "storage", "database.sqlite"))
 
-    new_hash_cmd = f"sudo -u {deploying_user} git -C {project_path} rev-parse --short HEAD"
-    try:
-        completed_process = subprocess.run(new_hash_cmd, shell=True, check=True, text=True, stdout=subprocess.PIPE)
-        new_commit_hash = completed_process.stdout.strip()
-    except subprocess.CalledProcessError as e:
-        print(f"Failed to get deployed commit hash: {e.stderr}")
-        sys.exit(1)
+    new_commit_hash = get_commit_hash(deploying_user, project_path)
 
     print(f"Branch {branch_name} at {new_commit_hash} deployed to {project_path} successfully")
 
     if process.returncode != 0:
         raise Exception(f"Deployment failed: {stderr.decode().strip()}")
+
+
+def get_commit_hash(deploying_user, project_path):
+    commit_hash_command = f"sudo -u {deploying_user} git -C {project_path} rev-parse --short HEAD"
+    try:
+        completed_process = subprocess.run(commit_hash_command, shell=True, check=True, text=True,
+                                           stdout=subprocess.PIPE)
+        current_commit_hash = completed_process.stdout.strip()
+    except subprocess.CalledProcessError as e:
+        print(f"Failed to get current commit hash: {e.stderr}")
+        sys.exit(1)
+    return current_commit_hash
 
 
 def check_sqlite_perms(database_file):
