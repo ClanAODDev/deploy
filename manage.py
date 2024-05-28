@@ -21,7 +21,7 @@ def main(args):
     config = load_config(args.config if 'config' in args else 'deploy.config.json')
     if 'projects' not in config:
         print("Error: No projects defined in configuration")
-        sys.exit(1)    
+        sys.exit(1)
 
     projects = config['projects']
     project_config = projects.get(args.project_key)
@@ -94,7 +94,7 @@ def restart_systemd_service(project_config):
 
     service_name = project_config['systemd_service']
     print(f"Restarting '{service_name}'")
-    
+
     command = f"service {service_name} restart"
     try:
         result = subprocess.run(command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -111,10 +111,9 @@ def deploy_project(project_config):
     project_path = project_config['path']
     branch_name = project_config['branch']
     deploying_user = project_config['deploying_user']
-    database_file = os.path.join(project_path, "storage", "database.sqlite")
-    
+
     print(f"Deploying {branch_name} to {project_path}")
- 
+
     if not git_fetch_with_retry(project_path, deploying_user):
         sys.exit(1)
 
@@ -145,7 +144,7 @@ def deploy_project(project_config):
     if status_check:
         print("Error: Unstaged changes detected. Please commit or stash changes before deploying.")
         sys.exit(1)
-        
+
     commands = [
         f"sudo -u {deploying_user} git fetch --all > /dev/null",
         f"sudo -u {deploying_user} git checkout {branch_name} > /dev/null",
@@ -167,22 +166,14 @@ def deploy_project(project_config):
         try:
             docker_command = f"docker exec -u {deploying_user} {project_config['container']} /usr/local/bin/php {project_path}/artisan migrate --force"
             result = subprocess.run(docker_command, shell=True, check=True, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            print(result.stdout) 
+            print(result.stdout)
             if result.stderr:
                 print(f"Warnings/Errors during migration: {result.stderr}", file=sys.stderr)
             print("Database migrations completed successfully.")
         except subprocess.CalledProcessError as e:
             print(f"Failed to run database migrations: {e.stderr.decode()}")
 
-    # Ensure correct ownership of SQLite db
-    if os.path.exists(database_file):
-        command = f"chown nginx:nginx-data {database_file}"
-        try:
-            subprocess.run(command, check=True, shell=True)
-        except subprocess.CalledProcessError as e:
-            print(f"Failed to change ownership: {e}")
-        except Exception as e:
-            print(f"An unexpected error occurred: {e}")
+    check_sqlite_perms(os.path.join(project_path, "storage", "database.sqlite"))
 
     new_hash_cmd = f"sudo -u {deploying_user} git -C {project_path} rev-parse --short HEAD"
     try:
@@ -197,11 +188,22 @@ def deploy_project(project_config):
     if process.returncode != 0:
             raise Exception(f"Deployment failed: {stderr.decode().strip()}")
 
+def check_sqlite_perms(database_file):
+
+    if os.path.exists(database_file):
+        command = f"chown nginx:nginx-data {database_file}"
+        try:
+            subprocess.run(command, check=True, shell=True)
+        except subprocess.CalledProcessError as e:
+            print(f"Failed to change ownership: {e}")
+        except Exception as e:
+            print(f"An unexpected error occurred: {e}")
+
 def revert_to_last_revision(project_config):
     validate_required_params(project_config, [
         'path', 'deploying_user'
     ])
-    
+
     project_path = project_config['path']
     deploying_user = project_config['deploying_user']
     last_revision_path = os.path.join(project_path, "LAST_REVISION")
@@ -270,7 +272,7 @@ def update_npm_packages(project_config):
     if 'block_npm_updates' in project_config and project_config['block_npm_updates'] is True:
         print("Error: This project does not allow NPM updates.")
         sys.exit(1)
-        
+
     validate_required_params(project_config, [
         'path', 'deploying_user'
     ])
@@ -335,6 +337,9 @@ def tracker_forum_sync(project_config):
     project_path = project_config['path']
     cron_user = project_config['cron_user']
     artisan_path = os.path.join(project_path, 'artisan')
+
+    check_sqlite_perms(os.path.join(project_path, "storage", "database.sqlite"))
+
     command = f"docker exec -u {cron_user} {project_config['container']} /usr/local/bin/php {artisan_path} do:membersync"
 
     try:
@@ -357,11 +362,11 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Manage project deployments and updates.")
     parser.add_argument("project_key", help="Project key which includes the project and branch info")
     parser.add_argument("action", choices=[
-        'deploy', 
-        'update-php', 
+        'deploy',
+        'update-php',
         'update-npm',
-        'restart-supervisor', 
-        'restart-service', 
+        'restart-supervisor',
+        'restart-service',
         'revert-deployment',
         'toggle-maintenance',
         'tracker-sync',
