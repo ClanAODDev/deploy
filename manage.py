@@ -6,6 +6,7 @@ import os
 import argparse
 import json
 
+
 def load_config(config_file):
     try:
         with open(config_file, 'r') as file:
@@ -16,6 +17,7 @@ def load_config(config_file):
     except json.JSONDecodeError:
         print(f"Error: Configuration file '{config_file}' is not valid JSON.")
         sys.exit(1)
+
 
 def main(args):
     config = load_config(args.config if 'config' in args else 'deploy.config.json')
@@ -50,6 +52,7 @@ def main(args):
         print("Error: Invalid action.")
         sys.exit(1)
 
+
 def git_fetch_with_retry(project_path, deploying_user, retries=3, delay=10):
     command = [
         f"cd {project_path}",
@@ -70,6 +73,7 @@ def git_fetch_with_retry(project_path, deploying_user, retries=3, delay=10):
         time.sleep(delay)  # Wait before retrying
     raise Exception(f"Failed to fetch from Git after several retries: {stderr.decode().strip()}")
 
+
 def restart_supervisord_process(project_config):
     validate_required_params(project_config, [
         'container', 'supervisor_process'
@@ -87,6 +91,7 @@ def restart_supervisord_process(project_config):
         print(f"Failed to restart supervisord process '{process_name}' in '{container_name}'.: {e.stderr.decode()}")
         sys.exit(1)
 
+
 def restart_systemd_service(project_config):
     validate_required_params(project_config, [
         'systemd_service',
@@ -102,6 +107,7 @@ def restart_systemd_service(project_config):
     except subprocess.CalledProcessError as e:
         print(f"Failed to restart service '{service_name}': {e.stderr.decode()}")
         sys.exit(1)
+
 
 def deploy_project(project_config):
     validate_required_params(project_config, [
@@ -120,7 +126,8 @@ def deploy_project(project_config):
     # Track current revision in case we need to back out
     commit_hash_command = f"sudo -u {deploying_user} git -C {project_path} rev-parse --short HEAD"
     try:
-        completed_process = subprocess.run(commit_hash_command, shell=True, check=True, text=True, stdout=subprocess.PIPE)
+        completed_process = subprocess.run(commit_hash_command, shell=True, check=True, text=True,
+                                           stdout=subprocess.PIPE)
         current_commit_hash = completed_process.stdout.strip()
     except subprocess.CalledProcessError as e:
         print(f"Failed to get current commit hash: {e.stderr}")
@@ -165,7 +172,8 @@ def deploy_project(project_config):
     if 'container' in project_config:
         try:
             docker_command = f"docker exec -u {deploying_user} {project_config['container']} /usr/local/bin/php {project_path}/artisan migrate --force"
-            result = subprocess.run(docker_command, shell=True, check=True, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            result = subprocess.run(docker_command, shell=True, check=True, text=True, stdout=subprocess.PIPE,
+                                    stderr=subprocess.PIPE)
             print(result.stdout)
             if result.stderr:
                 print(f"Warnings/Errors during migration: {result.stderr}", file=sys.stderr)
@@ -186,10 +194,10 @@ def deploy_project(project_config):
     print(f"Branch {branch_name} at {new_commit_hash} deployed to {project_path} successfully")
 
     if process.returncode != 0:
-            raise Exception(f"Deployment failed: {stderr.decode().strip()}")
+        raise Exception(f"Deployment failed: {stderr.decode().strip()}")
+
 
 def check_sqlite_perms(database_file):
-
     if os.path.exists(database_file):
         command = f"chown nginx:nginx-data {database_file}"
         try:
@@ -198,6 +206,7 @@ def check_sqlite_perms(database_file):
             print(f"Failed to change ownership: {e}")
         except Exception as e:
             print(f"An unexpected error occurred: {e}")
+
 
 def revert_to_last_revision(project_config):
     validate_required_params(project_config, [
@@ -234,6 +243,7 @@ def revert_to_last_revision(project_config):
         print(f"Failed to revert to commit {last_commit_hash}: {e.stderr.decode()}")
         sys.exit(1)
 
+
 def update_php_packages(project_config):
     validate_required_params(project_config, [
         'path', 'deploying_user', 'container'
@@ -267,6 +277,7 @@ def update_php_packages(project_config):
     except Exception as e:
         print("An error occurred during PHP package update: " + str(e))
         sys.exit(1)
+
 
 def update_npm_packages(project_config):
     if 'block_npm_updates' in project_config and project_config['block_npm_updates'] is True:
@@ -303,6 +314,7 @@ def update_npm_packages(project_config):
     except Exception as e:
         print("An error occurred during NPM package update: " + str(e))
 
+
 def toggle_maintenance_mode(project_config):
     validate_required_params(project_config, [
         'path', 'deploying_user', 'container',
@@ -329,6 +341,7 @@ def toggle_maintenance_mode(project_config):
         print(f"Failed to change maintenance mode: {e.stderr.decode()}")
         sys.exit(1)
 
+
 def tracker_forum_sync(project_config):
     validate_required_params(project_config, [
         'path', 'cron_user', 'container'
@@ -349,11 +362,13 @@ def tracker_forum_sync(project_config):
         print(f"Member sync failed: {e.stderr.decode()}")
         sys.exit(1)
 
+
 def validate_required_params(project_config, required_params):
     for key in required_params:
         if key not in project_config:
             print(f"Error: {key.replace('_', ' ').capitalize()} is required.")
             sys.exit(1)
+
 
 if __name__ == "__main__":
     if os.geteuid() != 0:
