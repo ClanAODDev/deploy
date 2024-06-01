@@ -112,6 +112,7 @@ def deploy_project(project_config):
     branch_name = project_config['branch']
     deploying_user = project_config['deploying_user']
     database_file = os.path.join(project_path, "storage", "database.sqlite")
+    database_folder = os.path.join(project_path, "database")
     
     print(f"Deploying {branch_name} to {project_path}")
  
@@ -163,7 +164,7 @@ def deploy_project(project_config):
     stdout, stderr = process.communicate()
 
     # gracefully handle deploying Laravel projects
-    if 'container' in project_config:
+    if 'container' in project_config and os.path.isdir(database_folder):
         try:
             docker_command = f"docker exec -u {deploying_user} {project_config['container']} /usr/local/bin/php {project_path}/artisan migrate --force"
             result = subprocess.run(docker_command, shell=True, check=True, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
