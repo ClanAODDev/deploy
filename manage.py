@@ -129,19 +129,21 @@ def deploy_project(project_config):
         sys.exit(1)
 
     last_revision_path = os.path.join(project_path, "LAST_REVISION")
-
-    # Check if LAST_REVISION exists and read the last revision hash
-    last_commit_hash = None
     if os.path.exists(last_revision_path):
         with open(last_revision_path, 'r') as file:
             last_commit_hash = file.readline().strip()
-
-    if current_commit_hash != last_commit_hash:
+    
+        if current_commit_hash != last_commit_hash:
+            with open(last_revision_path, 'w') as file:
+                file.write(current_commit_hash + "\n")
+                print(f"Commit {current_commit_hash} stored as last revision")
+        else:
+            print(f"Commit hash did not change.")
+    else:
         with open(last_revision_path, 'w') as file:
             file.write(current_commit_hash + "\n")
-            print(f"Commit {current_commit_hash} stored as last revision")
-    else:
-        print(f"Commit hash did not change.")
+            print(f"LAST_REVISION file created and commit {current_commit_hash} stored as last revision")
+
 
     remote_branches = subprocess.getoutput(
         f"cd {project_path} && sudo -u {deploying_user} git branch -r"
