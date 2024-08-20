@@ -113,9 +113,9 @@ def deploy_project(project_config):
     deploying_user = project_config['deploying_user']
     database_file = os.path.join(project_path, "storage", "database.sqlite")
     database_folder = os.path.join(project_path, "database")
-    
+
     print(f"Deploying {branch_name} to {project_path}")
- 
+
     if not git_fetch_with_retry(project_path, deploying_user):
         sys.exit(1)
 
@@ -129,19 +129,19 @@ def deploy_project(project_config):
         sys.exit(1)
 
     last_revision_path = os.path.join(project_path, "LAST_REVISION")
-
-    # Check if LAST_REVISION exists and read the last revision hash
     last_commit_hash = None
+
     if os.path.exists(last_revision_path):
         with open(last_revision_path, 'r') as file:
             last_commit_hash = file.readline().strip()
 
-    if current_commit_hash != last_commit_hash:
+    # Update LAST_REVISION only if the current hash is different from the last revision hash
+    if not last_commit_hash or current_commit_hash != last_commit_hash:
         with open(last_revision_path, 'w') as file:
             file.write(current_commit_hash + "\n")
             print(f"Commit {current_commit_hash} stored as last revision")
     else:
-        print(f"Commit hash did not change.")
+        print(f"Commit hash did not change. LAST_REVISION file not updated to preserve rollback capability.")
 
     remote_branches = subprocess.getoutput(
         f"cd {project_path} && sudo -u {deploying_user} git branch -r"
@@ -158,7 +158,7 @@ def deploy_project(project_config):
     if status_check:
         print("Error: Unstaged changes detected. Please commit or stash changes before deploying.")
         sys.exit(1)
-        
+
     commands = [
         f"sudo -u {deploying_user} git fetch --all > /dev/null",
         f"sudo -u {deploying_user} git checkout {branch_name} > /dev/null",
@@ -180,7 +180,7 @@ def deploy_project(project_config):
         try:
             docker_command = f"docker exec -u {deploying_user} {project_config['container']} /usr/local/bin/php {project_path}/artisan migrate --force"
             result = subprocess.run(docker_command, shell=True, check=True, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            print(result.stdout) 
+            print(result.stdout)
             if result.stderr:
                 print(f"Warnings/Errors during migration: {result.stderr}", file=sys.stderr)
             print("Database migrations completed successfully.")
