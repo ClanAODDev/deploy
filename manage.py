@@ -331,7 +331,7 @@ def toggle_maintenance_mode(project_config):
         print(f"Error: Maintenance not supported for this project. Operation aborted.")
         sys.exit(1)
 
-    action = 'up' if os.path.exists(maintenance_file) else 'down'
+    action = 'up' if os.path.exists(maintenance_file) else 'down --with-secret'
 
     command = f"docker exec -u {deploying_user} {project_config['container']} /usr/local/bin/php {artisan_path} {action}"
 
