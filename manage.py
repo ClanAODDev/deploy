@@ -336,8 +336,7 @@ def toggle_maintenance_mode(project_config):
     command = f"docker exec -u {deploying_user} {project_config['container']} /usr/local/bin/php {artisan_path} {action}"
 
     try:
-        subprocess.run(command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        print(f"Successfully changed maintenance mode to '{action}'.")
+        subprocess.run(command, shell=True, check=True)
     except subprocess.CalledProcessError as e:
         print(f"Failed to change maintenance mode: {e.stderr.decode()}")
         sys.exit(1)
