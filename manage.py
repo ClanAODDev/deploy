@@ -32,6 +32,8 @@ def main(args):
 
     if args.action == 'deploy':
         deploy_project(project_config)
+    elif args.action == 'deploy-with-force':
+        deploy_project(project_config, force=True)
     elif args.action == 'update-php':
         update_php_packages(project_config)
     elif args.action == 'update-npm':
@@ -103,7 +105,7 @@ def restart_systemd_service(project_config):
         print(f"Failed to restart service '{service_name}': {e.stderr.decode()}")
         sys.exit(1)
 
-def deploy_project(project_config):
+def deploy_project(project_config, force=False):
     validate_required_params(project_config, [
         'path', 'branch', 'deploying_user'
     ])
@@ -157,9 +159,14 @@ def deploy_project(project_config):
     status_check = subprocess.getoutput(
         f"cd {project_path} && sudo -u {deploying_user} git status --porcelain"
     )
+
     if status_check:
-        print("Error: Unstaged changes detected. Please commit or stash changes before deploying.")
-        sys.exit(1)
+        if force:
+            print("Unstaged changes detected. Performing 'git reset --hard' due to deploy-with-force.")
+            subprocess.run(f"cd {project_path} && sudo -u {deploying_user} git reset --hard", shell=True, check=True)
+        else:
+            print("Error: Unstaged changes detected. Use 'deploy-with-force' to discard them.")
+            sys.exit(1)
         
     commands = [
         f"sudo -u {deploying_user} git fetch --all > /dev/null",
@@ -371,7 +378,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Manage project deployments and updates.")
     parser.add_argument("project_key", help="Project key which includes the project and branch info")
     parser.add_argument("action", choices=[
-        'deploy', 
+        'deploy',
+        'deploy-with-force',
         'update-php', 
         'update-npm',
         'restart-supervisor', 
