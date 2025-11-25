@@ -5,6 +5,7 @@ import sys
 import os
 import argparse
 import json
+import time
 
 def load_config(config_file):
     try:
@@ -96,10 +97,12 @@ def restart_systemd_service(project_config):
 
     service_name = project_config['systemd_service']
     print(f"Restarting '{service_name}'")
-    
+
     command = f"service {service_name} restart"
     try:
         result = subprocess.run(command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        if result.stdout:
+            print(result.stdout.decode().strip())
         print(f"Successfully restarted '{service_name}'")
     except subprocess.CalledProcessError as e:
         print(f"Failed to restart service '{service_name}': {e.stderr.decode()}")
@@ -269,23 +272,12 @@ def update_php_packages(project_config):
         sys.exit(1)
 
     docker_command = f"docker exec -u {deploying_user} {container_name} /bin/bash -c 'cd {project_path} && composer update --no-interaction --no-dev'"
-    command = f"{docker_command} > /dev/null"
 
     try:
-        process = subprocess.Popen(
-            command,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            shell=True
-        )
-        stdout, stderr = process.communicate()
-
-        if process.returncode != 0:
-            raise Exception("PHP package update failed: " + stderr.decode().strip())
-
+        result = subprocess.run(docker_command, shell=True, check=True)
         print("PHP package update successful")
-    except Exception as e:
-        print("An error occurred during PHP package update: " + str(e))
+    except subprocess.CalledProcessError as e:
+        print(f"An error occurred during PHP package update: {e}")
         sys.exit(1)
 
 def update_npm_packages(project_config):
@@ -305,23 +297,14 @@ def update_npm_packages(project_config):
         print(f"Error: No 'package.json' found in the project directory. Not a Node.js project.")
         sys.exit(1)
 
-    command = f"cd {project_path} && sudo -u {deploying_user} npm update > /dev/null"
+    command = f"cd {project_path} && sudo -u {deploying_user} npm update"
 
     try:
-        process = subprocess.Popen(
-            command,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            shell=True
-        )
-        stdout, stderr = process.communicate()
-
-        if process.returncode != 0:
-            raise Exception("NPM package update failed: " + stderr.decode().strip())
-
+        result = subprocess.run(command, shell=True, check=True)
         print("NPM package update successful.")
-    except Exception as e:
-        print("An error occurred during NPM package update: " + str(e))
+    except subprocess.CalledProcessError as e:
+        print(f"An error occurred during NPM package update: {e}")
+        sys.exit(1)
 
 def toggle_maintenance_mode(project_config):
     validate_required_params(project_config, [
