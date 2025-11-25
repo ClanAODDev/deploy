@@ -5,6 +5,7 @@ import sys
 import os
 import argparse
 import json
+import time
 
 def load_config(config_file):
     try:
@@ -96,10 +97,12 @@ def restart_systemd_service(project_config):
 
     service_name = project_config['systemd_service']
     print(f"Restarting '{service_name}'")
-    
+
     command = f"service {service_name} restart"
     try:
         result = subprocess.run(command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        if result.stdout:
+            print(result.stdout.decode().strip())
         print(f"Successfully restarted '{service_name}'")
     except subprocess.CalledProcessError as e:
         print(f"Failed to restart service '{service_name}': {e.stderr.decode()}")
