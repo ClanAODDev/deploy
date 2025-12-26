@@ -356,7 +356,7 @@ def tracker_forum_sync(project_config):
     project_path = project_config['path']
     cron_user = project_config['cron_user']
     artisan_path = os.path.join(project_path, 'artisan')
-    command = f"docker exec -u {cron_user} {project_config['container']} /usr/local/bin/php {artisan_path} tracker:membersync"
+    command = f"docker exec -u {cron_user} {project_config['container']} /usr/local/bin/php {artisan_path} tracker:member-sync"
 
     try:
         subprocess.run(command, shell=True, check=True)
