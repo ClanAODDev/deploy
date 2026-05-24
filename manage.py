@@ -184,12 +184,30 @@ def deploy_project(project_config, force=False):
     )
     stdout, stderr = process.communicate()
 
+    if 'container' in project_config and os.path.exists(os.path.join(project_path, 'composer.lock')):
+        diff_result = subprocess.run(
+            f"sudo -u {deploying_user} git -C {project_path} diff --name-only {current_commit_hash} HEAD -- composer.lock",
+            shell=True, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+        )
+        if 'composer.lock' in diff_result.stdout:
+            print("composer.lock changed, running composer install...")
+            try:
+                result = subprocess.run(
+                    f"docker exec -u {deploying_user} {project_config['container']} /bin/bash -c 'cd {project_path} && composer install --no-dev --no-interaction --optimize-autoloader'",
+                    shell=True, check=True, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+                )
+                print(result.stdout)
+                print("Composer install completed successfully.")
+            except subprocess.CalledProcessError as e:
+                print(f"Failed to run composer install: {e.stderr}")
+                sys.exit(1)
+
     # gracefully handle deploying Laravel projects
     if 'container' in project_config and os.path.isdir(database_folder):
         try:
             docker_command = f"docker exec -u {deploying_user} {project_config['container']} /usr/local/bin/php {project_path}/artisan migrate --force"
             result = subprocess.run(docker_command, shell=True, check=True, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            print(result.stdout) 
+            print(result.stdout)
             if result.stderr:
                 print(f"Warnings/Errors during migration: {result.stderr}", file=sys.stderr)
             print("Database migrations completed successfully.")
