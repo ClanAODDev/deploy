@@ -96,14 +96,20 @@ def restart_systemd_service(project_config):
 
     service_name = project_config['systemd_service']
     print(f"Restarting '{service_name}'")
-    
-    command = f"service {service_name} restart"
+
     try:
-        result = subprocess.run(command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        print(f"Successfully restarted '{service_name}'")
+        subprocess.run(f"systemctl restart {service_name}", shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     except subprocess.CalledProcessError as e:
         print(f"Failed to restart service '{service_name}': {e.stderr.decode()}")
         sys.exit(1)
+
+    status = subprocess.run(f"systemctl is-active {service_name}", shell=True, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+    if status.returncode != 0:
+        print(f"Service '{service_name}' is not running after restart. Recent logs:")
+        subprocess.run(f"journalctl -u {service_name} -n 30 --no-pager", shell=True)
+        sys.exit(1)
+
+    print(f"Service '{service_name}' restarted and running")
 
 def deploy_project(project_config, force=False):
     validate_required_params(project_config, [
