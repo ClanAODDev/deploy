@@ -155,6 +155,13 @@ def deploy_project(project_config, force=False):
         print(f"Error: Branch '{branch_name}' does not exist on the remote")
         sys.exit(1)
 
+    composer_lock = os.path.join(project_path, 'composer.lock')
+    if os.path.exists(composer_lock):
+        subprocess.run(
+            f"sudo -u {deploying_user} git -C {project_path} checkout -- composer.lock",
+            shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+        )
+
     # Check for unstaged changes
     status_check = subprocess.getoutput(
         f"cd {project_path} && sudo -u {deploying_user} git status --porcelain"
