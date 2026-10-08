@@ -227,6 +227,17 @@ def deploy_project(project_config, force=False):
         except subprocess.CalledProcessError as e:
             print(f"Failed to run database migrations: {e.stderr.decode()}")
 
+        for artisan_command, description in [
+            ("optimize:clear", "Cleared cached config, routes, views, and events."),
+            ("queue:restart", "Signalled queue workers to restart on the new code."),
+        ]:
+            try:
+                docker_command = f"docker exec -u {deploying_user} {project_config['container']} /usr/local/bin/php {project_path}/artisan {artisan_command}"
+                subprocess.run(docker_command, shell=True, check=True, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                print(description)
+            except subprocess.CalledProcessError as e:
+                print(f"Failed to run artisan {artisan_command}: {e.stderr}", file=sys.stderr)
+
     # Ensure correct ownership of SQLite db
     if os.path.exists(database_file):
         command = f"chown nginx:nginx-data {database_file}"
