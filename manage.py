@@ -218,7 +218,7 @@ def deploy_project(project_config, force=False):
     # gracefully handle deploying Laravel projects
     if 'container' in project_config and os.path.isdir(database_folder):
         try:
-            docker_command = f"docker exec -u {deploying_user} {project_config['container']} /usr/local/bin/php {project_path}/artisan migrate --force"
+            docker_command = f"docker exec -u {deploying_user} {project_config['container']} /usr/bin/php {project_path}/artisan migrate --force"
             result = subprocess.run(docker_command, shell=True, check=True, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             print(result.stdout)
             if result.stderr:
@@ -232,7 +232,7 @@ def deploy_project(project_config, force=False):
             ("queue:restart", "Signalled queue workers to restart on the new code."),
         ]:
             try:
-                docker_command = f"docker exec -u {deploying_user} {project_config['container']} /usr/local/bin/php {project_path}/artisan {artisan_command}"
+                docker_command = f"docker exec -u {deploying_user} {project_config['container']} /usr/bin/php {project_path}/artisan {artisan_command}"
                 subprocess.run(docker_command, shell=True, check=True, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
                 print(description)
             except subprocess.CalledProcessError as e:
@@ -382,7 +382,7 @@ def toggle_maintenance_mode(project_config):
 
     action = 'up' if os.path.exists(maintenance_file) else 'down --with-secret'
 
-    command = f"docker exec -u {deploying_user} {project_config['container']} /usr/local/bin/php {artisan_path} {action}"
+    command = f"docker exec -u {deploying_user} {project_config['container']} /usr/bin/php {artisan_path} {action}"
 
     try:
         subprocess.run(command, shell=True, check=True)
@@ -398,7 +398,7 @@ def tracker_forum_sync(project_config):
     project_path = project_config['path']
     cron_user = project_config['cron_user']
     artisan_path = os.path.join(project_path, 'artisan')
-    command = f"docker exec -u {cron_user} {project_config['container']} /usr/local/bin/php {artisan_path} tracker:member-sync"
+    command = f"docker exec -u {cron_user} {project_config['container']} /usr/bin/php {artisan_path} tracker:member-sync"
 
     try:
         subprocess.run(command, shell=True, check=True)
