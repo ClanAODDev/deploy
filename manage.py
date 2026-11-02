@@ -225,7 +225,7 @@ def deploy_project(project_config, force=False):
                 print(f"Warnings/Errors during migration: {result.stderr}", file=sys.stderr)
             print("Database migrations completed successfully.")
         except subprocess.CalledProcessError as e:
-            print(f"Failed to run database migrations: {e.stderr.decode()}")
+            print(f"Failed to run database migrations: {e.stderr}")
 
         for artisan_command, description in [
             ("optimize:clear", "Cleared cached config, routes, views, and events."),
