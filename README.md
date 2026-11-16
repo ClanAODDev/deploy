@@ -29,7 +29,7 @@ Example `config.json`:
 
 | Project Key        | Value                                                                                                   |
 |--------------------|---------------------------------------------------------------------------------------------------------|
-| cron_user          | Necessary for any process that needs to run with a user other than the deploying user                   |
+| cron_user          | User the app runs as inside the container. Used for `tracker:member-sync` and the post-deploy `optimize:clear` / `queue:restart`, which must write to the app's cache. Defaults to the deploying user |
 | deploying_user     | User account configured to pull changes from GitHub, perform deployment tasks, etc                      |
 | path               | Absolute path to the project                                                                            |
 | branch             | Git branch to lock the project to. Deployments will only use this branch.                               |
