@@ -227,6 +227,7 @@ def deploy_project(project_config, force=False):
         except subprocess.CalledProcessError as e:
             print(f"Failed to run database migrations: {e.stderr}")
 
+    if 'container' in project_config and os.path.isfile(os.path.join(project_path, 'artisan')):
         refresh_laravel_caches(project_config)
 
     # Ensure correct ownership of SQLite db
