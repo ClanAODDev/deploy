@@ -227,18 +227,7 @@ def deploy_project(project_config, force=False):
         except subprocess.CalledProcessError as e:
             print(f"Failed to run database migrations: {e.stderr}")
 
-        runtime_user = project_config.get('cron_user', deploying_user)
-
-        for artisan_command, description in [
-            ("optimize:clear", "Cleared cached config, routes, views, and events."),
-            ("queue:restart", "Signalled queue workers to restart on the new code."),
-        ]:
-            try:
-                docker_command = f"docker exec -u {runtime_user} {project_config['container']} /usr/bin/php {project_path}/artisan {artisan_command}"
-                subprocess.run(docker_command, shell=True, check=True, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                print(description)
-            except subprocess.CalledProcessError as e:
-                print(f"Failed to run artisan {artisan_command}: {(e.stderr or e.stdout).strip()}", file=sys.stderr)
+        refresh_laravel_caches(project_config)
 
     # Ensure correct ownership of SQLite db
     if os.path.exists(database_file):
@@ -262,6 +251,32 @@ def deploy_project(project_config, force=False):
 
     if process.returncode != 0:
             raise Exception(f"Deployment failed: {stderr.decode().strip()}")
+
+def run_artisan(project_config, artisan_command):
+    runtime_user = project_config.get('cron_user', project_config['deploying_user'])
+    docker_command = f"docker exec -u {runtime_user} {project_config['container']} /usr/bin/php {project_config['path']}/artisan {artisan_command}"
+    return subprocess.run(docker_command, shell=True, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+def refresh_laravel_caches(project_config):
+    cleared = run_artisan(project_config, "optimize:clear")
+    if cleared.returncode != 0:
+        print(f"Failed to run artisan optimize:clear: {(cleared.stderr or cleared.stdout).strip()}", file=sys.stderr)
+    else:
+        print("Cleared cached config, routes, views, and events.")
+
+        cached = run_artisan(project_config, "optimize")
+        if cached.returncode == 0:
+            print("Cached config, routes, views, and events.")
+        else:
+            print(f"Failed to run artisan optimize: {(cached.stderr or cached.stdout).strip()}", file=sys.stderr)
+            run_artisan(project_config, "optimize:clear")
+            print("Cleared the partial cache, so the app runs uncached until the next deploy.", file=sys.stderr)
+
+    restarted = run_artisan(project_config, "queue:restart")
+    if restarted.returncode == 0:
+        print("Signalled queue workers to restart on the new code.")
+    else:
+        print(f"Failed to run artisan queue:restart: {(restarted.stderr or restarted.stdout).strip()}", file=sys.stderr)
 
 def revert_to_last_revision(project_config):
     validate_required_params(project_config, [
@@ -297,6 +312,9 @@ def revert_to_last_revision(project_config):
     except subprocess.CalledProcessError as e:
         print(f"Failed to revert to commit {last_commit_hash}: {e.stderr.decode()}")
         sys.exit(1)
+
+    if 'container' in project_config and os.path.isfile(os.path.join(project_path, 'artisan')):
+        refresh_laravel_caches(project_config)
 
 def update_php_packages(project_config):
     validate_required_params(project_config, [

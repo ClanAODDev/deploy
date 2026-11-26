@@ -29,7 +29,7 @@ Example `config.json`:
 
 | Project Key        | Value                                                                                                   |
 |--------------------|---------------------------------------------------------------------------------------------------------|
-| cron_user          | User the app runs as inside the container. Used for `tracker:member-sync` and the post-deploy `optimize:clear` / `queue:restart`, which must write to the app's cache. Defaults to the deploying user |
+| cron_user          | User the app runs as inside the container. Used for `tracker:member-sync` and the post-deploy `optimize:clear` / `optimize` / `queue:restart`, which must write to the app's cache. Defaults to the deploying user |
 | deploying_user     | User account configured to pull changes from GitHub, perform deployment tasks, etc                      |
 | path               | Absolute path to the project                                                                            |
 | branch             | Git branch to lock the project to. Deployments will only use this branch.                               |
@@ -52,3 +52,10 @@ manage.py [-h] project_key {
     tracker-sync          # Should only be run on the production Tracker project, syncs forum data with tracker data
 }
 ```
+
+### Laravel caches
+
+After a Laravel deploy or `revert-deployment`, the script clears the cached config, routes, views and events, caches them again with `php artisan optimize`, and restarts the queue workers. If caching fails, it clears the partial cache and the app runs uncached.
+
+Because the config is cached, edits to a project's `.env` only take effect after the next deploy, or after running `php artisan optimize` inside the container as the `cron_user`.
+
